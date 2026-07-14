@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ReferenceItem",
+  "type": "object",
+  "required": ["title", "url", "source", "checked_at_kst"],
+  "properties": {
+    "title": { "type": "string" },
+    "url": { "type": "string" },
+    "source": { "type": "string" },
+    "published_at": { "type": "string" },
+    "checked_at_kst": { "type": "string" },
+    "tags": { "type": "array", "items": { "type": "string" } },
+    "broadcast_use": { "type": "string", "enum": ["candidate", "used", "rejected", "watch"] },
+    "notes": { "type": "string" }
+  }
+}

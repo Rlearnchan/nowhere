@@ -1,0 +1,23 @@
+# local/runtime
+.env
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# large/raw reference material
+references/raw/**
+references/archive/**
+*.mp4
+*.mkv
+*.mov
+*.wav
+*.mp3
+*.tar.gz
+*.zip
+*.sqlite
+*.db
+
+# keep directory placeholders
+!references/raw/.gitkeep
+!references/archive/.gitkeep
