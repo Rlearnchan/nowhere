@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from base64 import b64encode
 from dataclasses import dataclass
 import hashlib
 import json
@@ -296,18 +297,26 @@ class CpanelClient:
 def verify_public_urls(run_dir: Path) -> dict[str, Any]:
     run_dir = run_dir.resolve()
     manifest = _load_json(run_dir / 'publish' / 'publish_manifest.json')
+    values = load_env()
     remote_plan = manifest.get('publisher', {}).get('remote_plan', {})
+    public_url = str(remote_plan.get('public_url') or '').rstrip('/')
+    public_data_url = str(remote_plan.get('public_data_url') or f'{public_url}/data').rstrip('/') if public_url else ''
     urls = [
         {'role': 'html', 'url': remote_plan.get('public_html_url') or remote_plan.get('public_url')},
         {'role': 'pdf', 'url': remote_plan.get('public_pdf_url'), 'optional': True},
+        {'role': 'asset', 'url': f'{public_url}/chart_bootstrap.js' if public_url else None},
+        {'role': 'lightweight_series', 'url': f'{public_data_url}/lightweight_series.json' if public_data_url else None},
+        {'role': 'datawrapper_result', 'url': f'{public_data_url}/datawrapper_result.json' if public_data_url else None, 'optional': True},
     ]
-    checks = [_check_public_url(item) for item in urls if item.get('url')]
+    auth_header = _basic_auth_header(values)
+    checks = [_check_public_url(item, auth_header=auth_header) for item in urls if item.get('url')]
     required_failures = [item for item in checks if not item.get('optional') and item.get('status') != 'ok']
     result = {
         'schema_version': 'nowhere.public_url_verification.v1',
         'run_id': manifest.get('run_id'),
         'slug': manifest.get('slug'),
         'status': 'ok' if not required_failures else 'failed',
+        'auth_configured': bool(auth_header),
         'checks': checks,
     }
     output_path = run_dir / 'publish' / 'public_url_verification.json'
@@ -315,13 +324,15 @@ def verify_public_urls(run_dir: Path) -> dict[str, Any]:
     return result
 
 
-def _check_public_url(item: dict[str, Any]) -> dict[str, Any]:
+def _check_public_url(item: dict[str, Any], auth_header: str | None = None) -> dict[str, Any]:
     url = item.get('url')
     result = {'role': item.get('role'), 'url': url, 'optional': bool(item.get('optional')), 'status': 'not_run', 'http_status': None, 'bytes_checked': 0, 'error': None}
     for method in ('HEAD', 'GET'):
         req = request.Request(str(url), method=method)
         req.add_header('User-Agent', 'Mozilla/5.0 (compatible; NowhereBriefVerifier/0.1; +https://buykings.kr/)')
         req.add_header('Accept', 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8')
+        if auth_header:
+            req.add_header('Authorization', auth_header)
         if method == 'GET':
             req.add_header('Range', 'bytes=0-512')
         try:
@@ -368,11 +379,21 @@ def _planned_files(run_dir: Path, manifest: dict[str, Any]) -> list[dict[str, An
 def _remote_dir_for_role(manifest: dict[str, Any], role: str, slug: str) -> str:
     publisher = manifest.get('publisher', {})
     remote_plan = publisher.get('remote_plan', {})
-    if role in {'article_html', 'article_pdf'} and remote_plan.get('html'):
-        return str(Path(remote_plan['html']).parent)
-    if remote_plan.get('data'):
-        return str(Path(remote_plan['data']))
-    return f'public_html/tracker/nowhere/{slug}'
+    html_dir = str(Path(remote_plan['html']).parent) if remote_plan.get('html') else f'public_html/tracker/nowhere/{slug}'
+    if role in {'article_html', 'article_pdf', 'article_asset'}:
+        return html_dir
+    if role in {'article_data', 'chart_specs', 'chart_series', 'chart_result', 'qa'}:
+        return str(Path(html_dir) / 'data')
+    return html_dir
+
+
+def _basic_auth_header(values: dict[str, str]) -> str | None:
+    user = values.get('BUYKINGS_BASIC_AUTH_USER') or values.get('CPANEL_PUBLIC_BASIC_AUTH_USER')
+    password = values.get('BUYKINGS_BASIC_AUTH_PASSWORD') or values.get('CPANEL_PUBLIC_BASIC_AUTH_PASSWORD')
+    if not user or not password:
+        return None
+    token = b64encode(f'{user}:{password}'.encode('utf-8')).decode('ascii')
+    return f'Basic {token}'
 
 
 def _multipart_body(boundary: str, fields: dict[str, str], file_path: Path) -> bytes:

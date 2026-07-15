@@ -211,7 +211,7 @@ def test_publish_bundle_exposes_lightweight_frontend_bootstrap(tmp_path: Path) -
     assert article["artifacts"]["lightweight_bootstrap"] == "site/chart_bootstrap.js"
     assert any(item["remote_role"] == "article_asset" for item in manifest["files"])
     assert "lightweight-charts" in bootstrap
-    assert "../data/lightweight_series.json" in bootstrap
+    assert "data/lightweight_series.json" in bootstrap
 
 def test_chart_payload_contracts_are_structured_for_frontends(tmp_path: Path) -> None:
     root = Path(__file__).resolve().parents[1]

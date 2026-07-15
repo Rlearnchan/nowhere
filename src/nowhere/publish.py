@@ -74,6 +74,7 @@ def _remote_plan(values: dict[str, str], manifest: dict[str, Any]) -> dict[str, 
         'public_url': f'{public_base}/nowhere/{slug}/',
         'public_html_url': f'{public_base}/nowhere/{slug}/index.html',
         'public_pdf_url': f'{public_base}/nowhere/{slug}/brief.pdf',
+        'public_data_url': f'{public_base}/nowhere/{slug}/data/',
     }
 
 

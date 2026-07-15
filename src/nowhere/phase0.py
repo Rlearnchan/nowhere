@@ -576,10 +576,10 @@ def render_html_brief(packs: dict[str, Any], qa_report: dict[str, Any]) -> str:
   </div>
 
   <h2>Tracker Chart Preview</h2>
-  <section class="chart-shell" id="nowhere-lightweight-chart" data-chart-src="../data/lightweight_series.json">
+  <section class="chart-shell" id="nowhere-lightweight-chart" data-chart-src="data/lightweight_series.json">
     <p class="chart-fallback">Loading tracker chart payload...</p>
   </section>
-  <section class="panel" id="nowhere-datawrapper-embeds" data-result-src="../data/datawrapper_result.json">
+  <section class="panel" id="nowhere-datawrapper-embeds" data-result-src="data/datawrapper_result.json">
     <span class="badge review">Datawrapper publish pending</span>
   </section>
 
@@ -637,7 +637,7 @@ def render_lightweight_bootstrap_js() -> str:
 
   function loadDatawrapperResult() {
     if (!datawrapperContainer) return;
-    const src = datawrapperContainer.getAttribute('data-result-src') || '../data/datawrapper_result.json';
+    const src = datawrapperContainer.getAttribute('data-result-src') || 'data/datawrapper_result.json';
     fetch(src)
       .then((response) => response.ok ? response.json() : Promise.reject(new Error('missing datawrapper result')))
       .then(renderDatawrapperResult)
@@ -698,7 +698,7 @@ def render_lightweight_bootstrap_js() -> str:
   }
 
   if (container) {
-    const src = container.getAttribute('data-chart-src') || '../data/lightweight_series.json';
+    const src = container.getAttribute('data-chart-src') || 'data/lightweight_series.json';
     fetch(src)
       .then((response) => response.json())
       .then((payload) => loadLibrary().then(() => render(payload)).catch(() => render(payload)))
