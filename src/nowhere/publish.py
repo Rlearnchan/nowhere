@@ -59,23 +59,34 @@ def _sha256(path: Path) -> str:
 
 
 def _remote_plan(values: dict[str, str], manifest: dict[str, Any]) -> dict[str, Any]:
-    docroot = values.get('CPANEL_DOCROOT', '')
-    data_dir = values.get('CPANEL_DATA_DIR', '')
+    base_docroot = _nowhere_docroot(values)
     slug = manifest.get('slug', manifest.get('run_id', 'nowhere-brief'))
     public_base = (
-        values.get('BUYKINGS_PUBLIC_BASE_URL')
-        or values.get('CPANEL_PUBLIC_BASE_URL')
-        or 'https://buykings.kr/tracker'
+        values.get('BUYKINGS_NOWHERE_PUBLIC_BASE_URL')
+        or values.get('BUYKINGS_PUBLIC_BASE_URL')
+        or values.get('CPANEL_NOWHERE_PUBLIC_BASE_URL')
+        or 'https://buykings.kr'
     ).rstrip('/')
     return {
-        'html': f'{docroot.rstrip("/")}/nowhere/{slug}/index.html' if docroot else None,
-        'pdf': f'{docroot.rstrip("/")}/nowhere/{slug}/brief.pdf' if docroot else None,
-        'data': f'{data_dir.rstrip("/")}/nowhere/{slug}/' if data_dir else None,
+        'html': f'{base_docroot.rstrip("/")}/nowhere/{slug}/index.html' if base_docroot else None,
+        'pdf': f'{base_docroot.rstrip("/")}/nowhere/{slug}/brief.pdf' if base_docroot else None,
+        'data': f'{base_docroot.rstrip("/")}/nowhere/{slug}/data/' if base_docroot else None,
         'public_url': f'{public_base}/nowhere/{slug}/',
         'public_html_url': f'{public_base}/nowhere/{slug}/index.html',
         'public_pdf_url': f'{public_base}/nowhere/{slug}/brief.pdf',
         'public_data_url': f'{public_base}/nowhere/{slug}/data/',
     }
+
+
+def _nowhere_docroot(values: dict[str, str]) -> str:
+    explicit = values.get('CPANEL_NOWHERE_DOCROOT')
+    if explicit:
+        return explicit
+    docroot = values.get('CPANEL_DOCROOT', '')
+    normalized = docroot.rstrip('/')
+    if normalized.endswith('/tracker'):
+        return normalized[: -len('/tracker')]
+    return normalized
 
 
 def _load_json(path: Path) -> dict[str, Any]:

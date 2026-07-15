@@ -412,8 +412,8 @@ def test_publish_dry_run_includes_public_urls(tmp_path: Path) -> None:
     build_publish_dry_run(result.run_dir, env_paths=(env_path,))
     manifest = load_json(result.run_dir / "publish/publish_manifest.json")
 
-    assert manifest["publisher"]["remote_plan"]["public_url"] == "https://buykings.kr/tracker/nowhere/public-url-test/"
-    assert manifest["publisher"]["remote_plan"]["public_pdf_url"].endswith("/brief.pdf")
+    assert manifest["publisher"]["remote_plan"]["public_url"] == "https://buykings.kr/nowhere/public-url-test/"
+    assert manifest["publisher"]["remote_plan"]["public_pdf_url"] == "https://buykings.kr/nowhere/public-url-test/brief.pdf"
 
 
 def test_cpanel_execute_blocks_publish_file_hash_mismatch(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

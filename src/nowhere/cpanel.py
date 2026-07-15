@@ -379,7 +379,7 @@ def _planned_files(run_dir: Path, manifest: dict[str, Any]) -> list[dict[str, An
 def _remote_dir_for_role(manifest: dict[str, Any], role: str, slug: str) -> str:
     publisher = manifest.get('publisher', {})
     remote_plan = publisher.get('remote_plan', {})
-    html_dir = str(Path(remote_plan['html']).parent) if remote_plan.get('html') else f'public_html/tracker/nowhere/{slug}'
+    html_dir = str(Path(remote_plan['html']).parent) if remote_plan.get('html') else f'public_html/nowhere/{slug}'
     if role in {'article_html', 'article_pdf', 'article_asset'}:
         return html_dir
     if role in {'article_data', 'chart_specs', 'chart_series', 'chart_result', 'qa'}:
