@@ -1,0 +1,108 @@
+{
+  "schema_version": "editorial_memo.v1",
+  "run_id": "20260714-1430-demo",
+  "title": "지수는 복원됐지만, 시장은 아직 복구되지 않았다",
+  "one_liner": "반도체 대형주와 기관·프로그램 매수가 코스피를 끌어올렸지만, 코스닥·시장 폭·종목 확산은 여전히 위험회피 구간을 가리킨다.",
+  "summary_bullets": [
+    "코스피는 +1.61%로 장중 저점 대비 7.26% 반등했지만, 방향성 종목 중 상승 비율은 30.91%에 그쳤다.",
+    "코스닥은 매도 사이드카와 52주 저점을 거친 뒤 낙폭을 줄였으나 -2.08%, 상승 종목 비율은 24.59%다.",
+    "삼성전자 +3.93%, SK하이닉스 +3.58%와 기관 +3조5,242억원, 프로그램 +9,127억원이 코스피를 지지했다.",
+    "USD/KRW 은행 고시환율 프록시는 1,490.90원으로 0.57% 하락해 오전의 환율 부담을 일부 완화했다.",
+    "오후 3시 레버리지 ETF 대응 회의, 밤 9시30분 미국 CPI, 15일 ASML 실적이 다음 판단 지점이다."
+  ],
+  "news_bullets": [
+    {"event_id":"evt-kosdaq-sidecar","headline":"코스닥 매도 사이드카가 12시 6분 발동됐다.","market_connection":"오후 낙폭은 줄었지만 코스닥의 외국인·프로그램 매도와 약한 시장 폭이 남았다."},
+    {"event_id":"evt-hynix-estimate","headline":"SK하이닉스 단기 이익 전망은 컨센서스를 밑돌았지만 메모리 비중확대 의견은 유지됐다.","market_connection":"주가는 업황 붕괴와 초고마진 정상화 사이에서 기대치를 다시 가격에 반영하는 중이다."},
+    {"event_id":"evt-asml-preview","headline":"15일 ASML 실적에서는 매출보다 메모리 고객사 주문과 경영진 표현이 중요하다.","market_connection":"한국 반도체 반등이 단순 낙폭 과대인지 업사이클 신뢰 회복인지 가를 가능성이 있다."},
+    {"event_id":"evt-leverage-etf-policy","headline":"오후 3시 증권사 CEO 회의가 단일종목 레버리지 ETF 대응을 논의한다.","market_connection":"장 후반 리밸런싱은 변동성 증폭기일 수 있으나 오전 급락의 단독 원인으로 보기는 어렵다."},
+    {"event_id":"evt-tsmc-revenue","headline":"TSMC 6월 매출은 전년 대비 67.9% 증가했다.","market_connection":"AI·첨단공정 수요가 완전히 꺾였다는 주장에는 반대 증거지만 한국 메모리 이익 경로와 동일하지는 않다."},
+    {"event_id":"evt-us-cpi","headline":"미국 6월 CPI가 밤 9시30분 발표된다.","market_connection":"달러·미국 금리·기술주 밸류에이션을 통해 다음 거래일 국내 장의 출발점을 결정한다."}
+  ],
+  "stories": [
+    {
+      "story_id": "story-narrow-rebound",
+      "title": "지수 반등인가, 반도체가 만든 지수 복원인가",
+      "question": "코스피 플러스 전환을 시장 전체의 안정으로 읽어도 되는가?",
+      "observed_facts": [
+        "코스피는 장중 저점 대비 7.26% 반등했고 당일 고저 범위의 88% 지점에 있다.",
+        "코스피 상승 종목은 272개, 하락 종목은 608개로 방향성 종목 중 상승 비율은 30.91%다.",
+        "코스닥은 -2.08%, 상승 종목 비율 24.59%이며 장중 52주 저점과 매도 사이드카를 기록했다.",
+        "삼성전자·SK하이닉스가 동반 강세였고 코스피 기관·프로그램 수급은 순매수였다."
+      ],
+      "interpretation": "오후 코스피 반등은 광범위한 위험선호 복귀보다 반도체 대형주, 기관, 프로그램이 만든 좁은 지수 복원으로 보는 편이 타당하다. 환율 프록시 하락은 완충 요인이지만, 코스닥과 시장 폭은 아직 종목 단위의 위험회피가 끝나지 않았음을 보여준다.",
+      "alternative_hypotheses": [
+        "오전의 과매도가 빠르게 정상화되는 초기 단계이며 시장 폭은 후행할 수 있다.",
+        "외국인 현물 매수가 비반도체로 확산되면 기술적 반등보다 강한 체제 전환일 수 있다."
+      ],
+      "counterevidence": [
+        "코스피는 전일 종가를 회복하고 장중 고점에 가까운 수준까지 올라왔다.",
+        "USD/KRW 은행 고시환율 프록시는 하락해 외국인 환차손 부담을 일부 낮췄다."
+      ],
+      "disconfirmation_conditions": [
+        "코스닥이 800선 부근을 회복하고 상승 종목 비율이 40% 이상으로 확대된다.",
+        "외국인 코스닥 순매도가 둔화하고 비반도체 시총 상위 종목이 안정된다.",
+        "반대로 코스피가 전일 종가 아래로 밀리고 반도체 대형주가 상승분을 반납하면 반등의 질은 더 약해진다."
+      ],
+      "evidence_ids": ["mkt-kospi-1430", "breadth-kospi-1430", "mkt-kosdaq-1430", "breadth-kosdaq-1430", "flow-kospi-institution", "flow-kospi-program", "evt-kosdaq-sidecar"],
+      "confidence": "high"
+    },
+    {
+      "story_id": "story-semi-fundamental-positioning",
+      "title": "반도체 펀더멘털 훼손인가, 기대치·포지션 재조정인가",
+      "question": "SK하이닉스 실적 논쟁과 레버리지 ETF 가운데 무엇이 주가를 더 잘 설명하는가?",
+      "observed_facts": [
+        "한국투자증권의 SK하이닉스 2분기 이익 전망은 컨센서스보다 8% 낮지만 HBM 공급 제약과 LTA를 근거로 비중확대 의견은 유지됐다.",
+        "TSMC 6월 매출은 전년 대비 67.9% 증가했고 16일 2분기 실적 발표가 예정돼 있다.",
+        "ASML은 15일 실적을 발표하며 시장은 메모리 주문 강도와 경영진의 투자 기조 설명을 주목한다.",
+        "레버리지 ETF 분석은 장 후반 리밸런싱이 증폭 요인일 수 있으나 오전 변동성의 근본 원인으로는 설명력이 낮다고 평가했다."
+      ],
+      "interpretation": "현재 가격은 AI 메모리 수요 붕괴를 확정했다기보다, 높아진 이익 기대와 밸류에이션을 재조정하는 과정에 수급 구조가 변동성을 더한 모습에 가깝다. 따라서 단기 실적 추정치 하향과 구조적 HBM 강세를 동시에 놓고 봐야 하며, 레버리지 ETF는 원인과 증폭기를 구분해 다뤄야 한다.",
+      "alternative_hypotheses": [
+        "범용 D램 가격과 고객사 비용 부담이 실제 최종 수요 둔화로 이어지는 초기 신호일 수 있다.",
+        "오늘 반등은 펀더멘털 재평가보다 전일 급락에 대한 기계적 숏커버와 저가매수일 수 있다."
+      ],
+      "counterevidence": [
+        "TSMC의 강한 매출은 AI·첨단공정 수요가 전면 붕괴했다는 주장과 맞지 않는다.",
+        "SK하이닉스 단기 추정치 하향은 실적 기대에 대한 실질적인 부담이다."
+      ],
+      "disconfirmation_conditions": [
+        "ASML이 메모리 고객사의 투자 지연 또는 주문 둔화를 명시한다.",
+        "TSMC 실적과 가이던스가 강한 매출 성장에도 수요 둔화를 시사한다.",
+        "반대로 ASML 주문·가이던스가 견조하고 한국 반도체로 외국인 매수가 이어지면 펀더멘털 훼손 해석은 약해진다."
+      ],
+      "evidence_ids": ["evt-hynix-estimate", "evt-asml-preview", "evt-tsmc-revenue", "evt-leverage-etf-policy", "mover-000660", "global-sox-prev"],
+      "confidence": "medium"
+    }
+  ],
+  "watchpoints": [
+    "15:00 금융투자협회·증권사 CEO의 단일종목 레버리지 ETF 대응 논의",
+    "장 마감까지 코스닥 800선과 상승 종목 비율 회복 여부",
+    "코스피 반도체 대형주의 상승분 유지와 비반도체 대형주의 안정",
+    "21:30 미국 6월 CPI와 미국 10년물·달러 반응",
+    "7월 15일 14:00 ASML, 7월 16일 TSMC 실적"
+  ],
+  "host_questions": [
+    "지수가 반등했다는 것과 시장이 안정됐다는 것은 같은 의미인가요?",
+    "레버리지 ETF는 오늘 변동성의 원인인가요, 이미 약해진 시장을 키운 증폭기인가요?",
+    "ASML 실적에서 매출 숫자보다 어떤 표현을 들어야 한국 반도체 방향을 판단할 수 있나요?"
+  ],
+  "chart_requests": [
+    "KOSPI/KOSDAQ day-range bar",
+    "KOSPI/KOSDAQ breadth comparison",
+    "KOSPI/KOSDAQ investor and program flows",
+    "top market-cap mover tiles",
+    "afternoon catalyst timeline"
+  ],
+  "claim_evidence_map": [
+    {"claim_id":"claim-01","claim":"코스피 반등은 시장 전체보다 반도체 대형주와 기관·프로그램에 집중됐다.","claim_type":"interpretation","evidence_ids":["mkt-kospi-1430","breadth-kospi-1430","flow-kospi-institution","flow-kospi-program","mover-005930","mover-000660"]},
+    {"claim_id":"claim-02","claim":"코스닥의 위험선호는 아직 회복되지 않았다.","claim_type":"interpretation","evidence_ids":["mkt-kosdaq-1430","breadth-kosdaq-1430","flow-kosdaq-foreign","flow-kosdaq-program","evt-kosdaq-sidecar"]},
+    {"claim_id":"claim-03","claim":"레버리지 ETF는 근본 원인보다 변동성 증폭기로 보는 편이 균형적이다.","claim_type":"reported_claim","evidence_ids":["evt-leverage-etf-policy"]},
+    {"claim_id":"claim-04","claim":"반도체 업황의 다음 검증점은 ASML 주문·경영진 발언과 TSMC 실적이다.","claim_type":"interpretation","evidence_ids":["evt-asml-preview","evt-tsmc-revenue","evt-hynix-estimate"]}
+  ],
+  "approval": {
+    "status": "draft",
+    "approved_by": null,
+    "approved_at": null,
+    "notes": "제품 고점 시연용 데모. 실제 방송 전 사람의 수치·논지 검토 필요."
+  }
+}

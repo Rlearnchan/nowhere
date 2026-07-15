@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "NOWHERE Datawrapper Specs",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "generated_at",
+    "charts"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "nowhere.datawrapper_specs.v1"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "charts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/definitions/chart"
+      }
+    }
+  },
+  "definitions": {
+    "chart": {
+      "type": "object",
+      "required": [
+        "chart_id",
+        "tool",
+        "chart_type",
+        "title",
+        "table",
+        "metadata"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "chart_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tool": {
+          "const": "datawrapper"
+        },
+        "chart_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "table": {
+          "$ref": "#/definitions/table"
+        },
+        "visualize": {
+          "type": "object"
+        },
+        "metadata": {
+          "$ref": "#/definitions/metadata"
+        }
+      }
+    },
+    "table": {
+      "type": "object",
+      "required": [
+        "columns",
+        "rows"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "columns": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "rows": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "required": [
+        "source_ids",
+        "evidence_ids",
+        "rights_classes"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "source_ids": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "evidence_ids": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "rights_classes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

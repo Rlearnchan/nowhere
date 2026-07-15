@@ -1,0 +1,14 @@
+{
+  "evidence_id": "mkt-kospi-fixture",
+  "symbol": "KOSPI",
+  "name": "KOSPI fixture",
+  "last": 2910.12,
+  "change": 35.31,
+  "change_pct": 1.23,
+  "prev_close": 2874.81,
+  "open": 2880.0,
+  "high": 2925.0,
+  "low": 2860.0,
+  "unit": "index",
+  "as_of": "2026-07-14T14:30:00+09:00"
+}
