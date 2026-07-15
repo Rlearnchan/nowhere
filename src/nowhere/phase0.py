@@ -514,10 +514,17 @@ def render_html_brief(packs: dict[str, Any], qa_report: dict[str, Any]) -> str:
     )
     stories = "\n".join(_render_story(story) for story in editorial.get("stories", []))
     watchpoints = "\n".join(f"<li>{escape(item)}</li>" for item in editorial.get("watchpoints", []))
+    source_items = market.get("sources", []) + news.get("sources", [])
     sources = "\n".join(
-        f"<li>{escape(src['source_id'])}: {escape(src['name'])} ({escape(src.get('rights_class', ''))})</li>"
-        for src in market.get("sources", []) + news.get("sources", [])
+        f"<li><span>{escape(src['source_id'])}</span><strong>{escape(src['name'])}</strong><em>{escape(src.get('rights_class', ''))}</em></li>"
+        for src in source_items
     )
+    source_chips = "\n".join(
+        f'<span class="source-chip">{escape(src.get("rights_class", "unknown"))}</span>'
+        for src in source_items
+    )
+    qa_warnings = "\n".join(f"<li>{escape(item)}</li>" for item in qa_report.get("warnings", []))
+    qa_badge_class = "ok" if qa_report["status"] == "ok" else "review" if qa_report["status"] == "review_needed" else "blocked"
     kospi_breadth = breadth.get("KOSPI", {}).get("advancer_ratio_ex_flat_pct", 0)
     kosdaq_breadth = breadth.get("KOSDAQ", {}).get("advancer_ratio_ex_flat_pct", 0)
 
@@ -527,52 +534,70 @@ def render_html_brief(packs: dict[str, Any], qa_report: dict[str, Any]) -> str:
   <meta charset="utf-8">
   <title>{escape(editorial['title'])}</title>
   <style>
-    body {{ margin: 0; background: #f4f6f8; color: #17212b; font-family: "Noto Sans CJK KR", "Apple SD Gothic Neo", Arial, sans-serif; }}
-    main {{ max-width: 960px; margin: 0 auto; padding: 36px 28px 64px; }}
-    header {{ border-top: 8px solid #0b1f33; padding-top: 24px; }}
-    h1 {{ margin: 0; color: #0b1f33; font-size: 34px; line-height: 1.18; }}
-    h2 {{ margin: 34px 0 12px; color: #0b1f33; font-size: 22px; }}
-    h3 {{ margin: 0 0 8px; color: #263a4d; font-size: 15px; }}
+    :root {{ color-scheme: light; --ink: #18222d; --muted: #5f6f7d; --line: #d9e0e7; --panel: #ffffff; --wash: #f3f6f8; --accent: #185b73; --up: #c8463a; --down: #2f6fb0; --warn: #9a6a12; }}
+    body {{ margin: 0; background: var(--wash); color: var(--ink); font-family: "Noto Sans CJK KR", "Apple SD Gothic Neo", Arial, sans-serif; }}
+    main {{ max-width: 1040px; margin: 0 auto; padding: 28px 24px 56px; }}
+    header {{ border-top: 6px solid #102332; padding-top: 22px; }}
+    h1 {{ margin: 8px 0 0; color: #102332; font-size: 34px; line-height: 1.18; letter-spacing: 0; }}
+    h2 {{ margin: 32px 0 12px; color: #102332; font-size: 20px; }}
+    h3 {{ margin: 0 0 8px; color: #263a4d; font-size: 14px; }}
     p, li, td, th {{ font-size: 14px; line-height: 1.55; }}
-    .meta {{ color: #647586; font-size: 12px; }}
-    .one-liner {{ font-size: 18px; color: #263a4d; }}
+    .topline, .source-strip {{ display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }}
+    .meta {{ color: var(--muted); font-size: 12px; }}
+    .one-liner {{ max-width: 820px; font-size: 18px; color: #2d4050; }}
+    .badge, .source-chip {{ display: inline-flex; align-items: center; border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 4px 8px; font-size: 12px; color: #435363; }}
+    .badge.ok {{ border-color: #8ab69b; color: #245b3b; }}
+    .badge.review {{ border-color: #d8a63c; color: var(--warn); }}
+    .badge.blocked {{ border-color: #c8463a; color: #9d2f26; }}
+    .source-chip {{ background: #eef3f6; }}
     .grid {{ display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }}
-    .metric, .panel {{ background: white; border: 1px solid #d8dee5; border-radius: 8px; padding: 16px; }}
-    .value {{ margin: 0; font-size: 30px; font-weight: 700; color: #0b1f33; }}
+    .metric, .panel {{ background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; }}
+    .metric {{ display: grid; gap: 4px; }}
+    .value {{ margin: 0; font-size: 30px; font-weight: 700; color: #102332; }}
     .change {{ margin: 0; font-weight: 700; }}
-    .up {{ color: #d9534f; }}
-    .down {{ color: #3b73b9; }}
-    table {{ width: 100%; border-collapse: collapse; background: white; }}
-    th, td {{ border-bottom: 1px solid #d8dee5; padding: 8px; text-align: left; }}
-    th {{ color: #263a4d; }}
+    .up {{ color: var(--up); }}
+    .down {{ color: var(--down); }}
+    .brief-grid {{ display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(280px, .8fr); gap: 12px; align-items: start; }}
+    .summary-list {{ margin: 0; padding-left: 18px; }}
+    table {{ width: 100%; border-collapse: collapse; background: white; margin-bottom: 10px; }}
+    th, td {{ border-bottom: 1px solid var(--line); padding: 8px; text-align: left; vertical-align: top; }}
+    th {{ color: #263a4d; background: #f8fafb; }}
     .qa {{ border-left: 4px solid #d8a63c; padding-left: 12px; color: #465866; }}
-    .chart-shell {{ min-height: 260px; background: white; border: 1px solid #d8dee5; border-radius: 8px; padding: 12px; }}
-    .chart-fallback {{ margin: 0; color: #647586; }}
+    .qa-list {{ margin: 8px 0 0; padding-left: 18px; color: #5b4a22; }}
+    .chart-shell {{ min-height: 280px; background: white; border: 1px solid var(--line); border-radius: 8px; padding: 12px; }}
+    .chart-fallback {{ margin: 0; color: var(--muted); }}
     .chart-legend {{ display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 0; padding: 0; list-style: none; }}
-    .chart-legend li, .badge {{ display: inline-flex; align-items: center; gap: 6px; border: 1px solid #d8dee5; background: #fff; border-radius: 999px; padding: 4px 8px; font-size: 12px; color: #465866; }}
-    .badge.review {{ border-color: #d8a63c; color: #7a5415; }}
+    .chart-legend li {{ display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 4px 8px; font-size: 12px; color: #465866; }}
     .embed-list {{ display: grid; gap: 10px; margin-top: 10px; }}
     .embed-list a {{ color: #0f5f8f; font-weight: 700; text-decoration: none; }}
-    @media print {{
-      body {{ background: white; }}
-      main {{ max-width: none; padding: 18mm; }}
-      .panel, .metric, table {{ break-inside: avoid; }}
-    }}
+    .source-list {{ display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }}
+    .source-list li {{ display: grid; grid-template-columns: 150px 1fr auto; gap: 10px; border-bottom: 1px solid var(--line); padding: 7px 0; }}
+    .source-list span, .source-list em {{ color: var(--muted); font-size: 12px; font-style: normal; }}
+    @media (max-width: 760px) {{ main {{ padding: 22px 14px 44px; }} .grid, .brief-grid {{ grid-template-columns: 1fr; }} h1 {{ font-size: 28px; }} .source-list li {{ grid-template-columns: 1fr; gap: 2px; }} }}
+    @media print {{ body {{ background: white; }} main {{ max-width: none; padding: 18mm; }} .panel, .metric, table {{ break-inside: avoid; }} }}
   </style>
 </head>
 <body>
 <main>
   <header>
-    <p class="meta">NOWHERE NOON BRIEF · {escape(market['run']['market_as_of'])} · QA {escape(qa_report['status'])}</p>
+    <div class="topline">
+      <span class="badge {qa_badge_class}">QA {escape(qa_report['status'])}</span>
+      <span class="meta">NOWHERE NOON BRIEF</span>
+      <span class="meta">{escape(market['run']['market_as_of'])}</span>
+    </div>
     <h1>{escape(editorial['title'])}</h1>
     <p class="one-liner">{escape(editorial['one_liner'])}</p>
+    <div class="source-strip">{source_chips}</div>
   </header>
 
   <h2>Market Snapshot</h2>
-  <div class="grid">{index_cards}</div>
-  <div class="panel">
-    <p>KOSPI breadth {kospi_breadth:.1f}% · KOSDAQ breadth {kosdaq_breadth:.1f}%</p>
-    <ul>{summary}</ul>
+  <div class="brief-grid">
+    <div class="grid">{index_cards}</div>
+    <section class="panel">
+      <h3>Briefing pulse</h3>
+      <p>KOSPI breadth {kospi_breadth:.1f}% · KOSDAQ breadth {kosdaq_breadth:.1f}%</p>
+      <ul class="summary-list">{summary}</ul>
+    </section>
   </div>
 
   <h2>Tracker Chart Preview</h2>
@@ -598,8 +623,11 @@ def render_html_brief(packs: dict[str, Any], qa_report: dict[str, Any]) -> str:
   <ul>{watchpoints}</ul>
 
   <h2>Sources And QA</h2>
-  <p class="qa">Public publish allowed: {str(qa_report['public_publish_allowed']).lower()} · Approval: {escape(editorial['approval']['status'])}</p>
-  <ul>{sources}</ul>
+  <section class="panel">
+    <p class="qa">Public publish allowed: {str(qa_report['public_publish_allowed']).lower()} · Approval: {escape(editorial['approval']['status'])}</p>
+    <ul class="qa-list">{qa_warnings}</ul>
+  </section>
+  <ul class="source-list">{sources}</ul>
 </main>
 <script src="chart_bootstrap.js" defer></script>
 </body>

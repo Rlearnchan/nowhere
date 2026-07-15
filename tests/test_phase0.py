@@ -18,6 +18,7 @@ from nowhere.datawrapper import DatawrapperClient, chart_to_csv, plan_datawrappe
 from nowhere.execution_status import summarize_execution_status
 from nowhere.sources.base import RawArtifact, SourceRequest
 from nowhere.sources.jibi import JibiJsonlAdapter
+from nowhere.sources.krx_adapter import KrxIndexAdapter
 from nowhere.sources.naver_snapshot import NaverSnapshotAdapter
 from nowhere.sources.yfinance_adapter import YFinanceAdapter
 from nowhere.source_audit import audit_adapter_outputs
@@ -95,6 +96,8 @@ def test_build_fixture_bundle_creates_publish_artifacts(tmp_path: Path) -> None:
     html = result.html_path.read_text(encoding="utf-8")
     assert "지수는 복원됐지만" in html
     assert "Public publish allowed" in html
+    assert "Briefing pulse" in html
+    assert "source-list" in html
     assert "nowhere-lightweight-chart" in html
     assert "chart_bootstrap.js" in html
 
@@ -293,6 +296,16 @@ def test_source_adapters_normalize_fixture_inputs() -> None:
     naver_html = NaverSnapshotAdapter(root / "fixtures/naver/kospi_snapshot.html")
     naver_html_obs = naver_html.normalize(naver_html.fetch(SourceRequest(source_id="src-naver-html")))
     assert naver_html_obs[0].observation_id == "mkt-kospi-html-fixture"
+
+    krx = KrxIndexAdapter(root / "fixtures/krx/kospi_index.json", market="KOSPI")
+    krx_raw = krx.fetch(SourceRequest(source_id="src-krx-kospi", params={"market": "KOSPI"}))
+    krx_obs = krx.normalize(krx_raw)
+    assert krx.healthcheck().status == "ok"
+    assert krx_obs[0].field_name == "index_snapshot"
+    assert krx_obs[0].value["symbol"] == "KOSPI"
+    assert krx_obs[0].value["last"] == 2910.12
+    assert krx_obs[0].rights_class == "public_official"
+    assert krx_obs[0].quality_flags == ["krx_terms_review_required"]
 
     yfinance = YFinanceAdapter()
     raw = RawArtifact(

@@ -197,6 +197,9 @@ def build_parser() -> argparse.ArgumentParser:
     collect.add_argument("--yfinance", type=Path, default=None)
     collect.add_argument("--live-yfinance", action="store_true", help="Fetch yfinance live data instead of fixture JSON")
     collect.add_argument("--yfinance-ticker", action="append", default=None)
+    collect.add_argument("--live-krx", action="store_true", help="Fetch KRX official index data instead of Naver prototype fixtures")
+    collect.add_argument("--krx-bas-dd", default=None, help="KRX base date in YYYYMMDD; defaults to the latest API behavior")
+    collect.add_argument("--krx-market", action="append", default=None, help="KRX market to fetch, e.g. KOSPI or KOSDAQ")
     return parser
 
 
@@ -291,6 +294,9 @@ def main(argv: list[str] | None = None) -> int:
             live_yfinance=args.live_yfinance,
             yfinance_tickers=args.yfinance_ticker,
             naver_urls=args.naver_url,
+            live_krx=args.live_krx,
+            krx_bas_dd=args.krx_bas_dd,
+            krx_markets=args.krx_market,
         )
         print(out_dir)
         return 0

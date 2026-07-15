@@ -9,6 +9,7 @@ from typing import Any
 from .contracts import load_json, validate_contract
 from .sources.base import Observation, RawArtifact, SourceRequest
 from .sources.jibi import JibiJsonlAdapter
+from .sources.krx_adapter import KrxIndexAdapter
 from .sources.naver_snapshot import NaverSnapshotAdapter
 from .sources.yfinance_adapter import YFinanceAdapter
 from .source_audit import audit_adapter_outputs
@@ -24,6 +25,10 @@ def collect_fixture_sources(
     live_yfinance: bool = False,
     yfinance_tickers: list[str] | None = None,
     naver_urls: list[str] | None = None,
+    live_krx: bool = False,
+    krx_auth_key: str | None = None,
+    krx_bas_dd: str | None = None,
+    krx_markets: list[str] | None = None,
 ) -> Path:
     repo_root = repo_root.resolve()
     output_root = (output_root or repo_root / "runs").resolve()
@@ -46,7 +51,23 @@ def collect_fixture_sources(
     raw_artifacts.append(raw)
     observations.extend(obs)
 
-    if naver_urls:
+    if live_krx:
+        from .env import load_env
+
+        env = load_env()
+        auth_key = krx_auth_key or env.get("KRX_AUTH_KEY")
+        for market in (krx_markets or ["KOSPI", "KOSDAQ"]):
+            adapter = KrxIndexAdapter(auth_key=auth_key, market=market)
+            raw, obs = _run_adapter(
+                adapter,
+                SourceRequest(
+                    f"src-krx-{market.lower()}",
+                    {"market": market, "bas_dd": krx_bas_dd or ""},
+                ),
+            )
+            raw_artifacts.append(raw)
+            observations.extend(obs)
+    elif naver_urls:
         for idx, url in enumerate(naver_urls, start=1):
             adapter = NaverSnapshotAdapter(url=url)
             raw, obs = _run_adapter(adapter, SourceRequest(f"src-naver-live-{idx}"))
@@ -106,7 +127,7 @@ def collect_fixture_sources(
         "adapter_contract": {
             "schema_version": "nowhere.adapter_contract.v1",
             "required_fields": ["news_event", "index_snapshot", "global_price_latest"],
-            "required_adapters": ["jibi", "naver_finance_snapshot", "yfinance"],
+            "required_adapters": ["jibi", "krx_or_naver_index_snapshot", "yfinance"],
             "rights_policy": {
                 "public_web_restricted": "review_only_not_redistributable",
                 "open_source_adapter": "terms_review_required",
@@ -132,11 +153,7 @@ def build_market_pack_from_observations(run_id: str, observations: list[Observat
             "generated_at": _utc_now(),
             "market_as_of": market_as_of,
             "quality_status": "review_needed",
-            "warnings": [
-                "fixture collector output; not for publication without review",
-                "Naver snapshots are prototype_only and redistribution restricted",
-                "yfinance values require Yahoo terms review",
-            ],
+            "warnings": _market_warnings(index_items, global_items),
         },
         "indices": [_index_from_observation(obs) for obs in index_items],
         "breadth": [],
@@ -296,7 +313,20 @@ def _source_note(raw: RawArtifact) -> str:
         flags.append("redistribution_warning")
     if raw.metadata.get("fixture"):
         flags.append("fixture")
+    if raw.metadata.get("adapter") == "krx_openapi":
+        flags.append("official_api_terms_review")
     return ", ".join(flags) if flags else "fixture adapter output"
+
+
+def _market_warnings(index_items: list[Observation], global_items: list[Observation]) -> list[str]:
+    warnings = ["collector output; review before publication"]
+    if any(obs.source_id.startswith("src-naver") for obs in index_items):
+        warnings.append("Naver snapshots are prototype_only and redistribution restricted")
+    if any(obs.source_id.startswith("src-krx") for obs in index_items):
+        warnings.append("KRX official API values require terms and redistribution review")
+    if global_items:
+        warnings.append("yfinance values require Yahoo terms review")
+    return warnings
 
 
 def _observation_dict(obs: Observation) -> dict[str, Any]:
