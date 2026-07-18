@@ -150,7 +150,12 @@ python -m nowhere.cli brief build-collected runs/collect-demo/adapter_outputs --
 python -m nowhere.cli brief collect-fixtures --run-id collect-live-yf \
   --live-yfinance --yfinance-ticker SPY --yfinance-ticker QQQ
 
-# explicit Naver prototype URL mode
+# KRX official index mode. If --krx-bas-dd is omitted, recent Korean weekdays are searched until a non-empty KRX response is found.
+python -m nowhere.cli brief collect-fixtures --run-id collect-krx-live \
+  --live-krx --krx-lookback-days 10 \
+  --live-yfinance --yfinance-ticker SPY --yfinance-ticker QQQ
+
+# explicit Naver prototype URL fallback mode
 python -m nowhere.cli brief collect-fixtures --run-id collect-naver-live \
   --naver-url 'https://m.stock.naver.com/domestic/index/KOSPI/total'
 ```
@@ -168,7 +173,9 @@ adapter_outputs/
   manifest.json
 ```
 
-`source_audit.json`은 stale 관측값, Naver prototype/review-only 스냅샷과 재배포 제한, yfinance 약관 검토 플래그와 글로벌 가격 window 품질 플래그(`single_point_window`, `zero_window_start_price`), jibi source ID 누락과 뉴스 품질 플래그(`missing_market_links`, `missing_reported_claims`, `low_significance_hint`, `unverified_news_event`) 같은 운영 경고를 preflight에 전달합니다. collector가 만든 `manifest.json`에는 `adapter_contract.required_fields`가 함께 기록되며, `news_event`, `index_snapshot`, `global_price_latest` 중 누락된 필드가 있으면 source audit이 blocked가 되어 preflight도 발행을 차단합니다. `build-collected`는 adapter output의 `market_pack.json`/`news_pack.json`에 draft editorial memo를 붙여 Phase 0 publish bundle로 승격합니다.
+`source_audit.json`은 stale 관측값, Naver prototype/review-only 스냅샷과 재배포 제한, yfinance 약관 검토 플래그와 글로벌 가격 window 품질 플래그(`single_point_window`, `zero_window_start_price`, `market_data_stale`, `unparseable_market_timestamp`), jibi source ID 누락과 뉴스 품질 플래그(`missing_market_links`, `missing_reported_claims`, `low_significance_hint`, `unverified_news_event`) 같은 운영 경고를 preflight에 전달합니다. collector가 만든 `manifest.json`에는 `adapter_contract.required_fields`와 `adapter_contract.source_profiles`가 함께 기록되며, `news_event`, `index_snapshot`, `global_price_latest` 중 누락된 필드가 있으면 source audit이 blocked가 되어 preflight도 발행을 차단합니다. `build-collected`는 adapter output의 `market_pack.json`/`news_pack.json`에 draft editorial memo를 붙여 Phase 0 publish bundle로 승격합니다.
+
+공개 HTML/PDF 상단에는 내부 QA 용어 대신 독자가 읽을 수 있는 상태 카드가 표시됩니다. 한국 시장은 KRX/대체 데이터 여부, 글로벌 맥락은 Yahoo Finance 최신성, 뉴스 근거는 시장 연결 보강 필요 여부, 브리프 상태는 초안/게시 가능 여부를 나눠 보여줍니다.
 
 ## 권장 첫 구현 순서
 

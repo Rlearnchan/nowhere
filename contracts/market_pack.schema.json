@@ -448,6 +448,14 @@
             "null"
           ]
         },
+        "freshness_age_hours": {
+          "type": "number",
+          "minimum": 0
+        },
+        "stale_hours": {
+          "type": "integer",
+          "minimum": 1
+        },
         "note": {
           "type": "string"
         },

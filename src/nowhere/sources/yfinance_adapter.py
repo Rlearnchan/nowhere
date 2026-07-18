@@ -67,6 +67,8 @@ def _normalize_yfinance_json(raw: RawArtifact, payload: object) -> list[Observat
         latest_time, latest_close = closes[-1]
         first_time, first_close = closes[0]
         change_pct = ((latest_close / first_close) - 1) * 100 if first_close else None
+        age_hours = _age_hours(latest_time, raw.captured_at)
+        stale_hours = int(raw.metadata.get("stale_hours") or 72)
         observations.append(
             Observation(
                 observation_id=f"{raw.source_id}-{ticker}-latest",
@@ -82,23 +84,44 @@ def _normalize_yfinance_json(raw: RawArtifact, payload: object) -> list[Observat
                     "adapter": "yfinance",
                     "period": raw.metadata.get("period"),
                     "interval": raw.metadata.get("interval"),
+                    "freshness_age_hours": age_hours,
+                    "stale_hours": stale_hours,
                 },
                 unit="price",
                 as_of=latest_time or raw.captured_at,
-                quality_flags=_quality_flags(first_close, len(closes)),
+                quality_flags=_quality_flags(first_close, len(closes), age_hours, stale_hours),
                 rights_class=raw.rights_class,
             )
         )
     return observations
 
 
-def _quality_flags(first_close: float, point_count: int) -> list[str]:
+def _quality_flags(first_close: float, point_count: int, age_hours: float | None, stale_hours: int) -> list[str]:
     flags = ["yahoo_terms_review_required"]
     if point_count < 2:
         flags.append("single_point_window")
     if first_close == 0:
         flags.append("zero_window_start_price")
+    if age_hours is None:
+        flags.append("unparseable_market_timestamp")
+    elif age_hours > stale_hours:
+        flags.append("market_data_stale")
     return flags
+
+
+def _age_hours(as_of: str | None, captured_at: str) -> float | None:
+    if not as_of:
+        return None
+    try:
+        parsed_as_of = datetime.fromisoformat(as_of.replace("Z", "+00:00"))
+        parsed_captured = datetime.fromisoformat(captured_at.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed_as_of.tzinfo is None:
+        parsed_as_of = parsed_as_of.replace(tzinfo=timezone.utc)
+    if parsed_captured.tzinfo is None:
+        parsed_captured = parsed_captured.replace(tzinfo=timezone.utc)
+    return round(max(0.0, (parsed_captured.astimezone(timezone.utc) - parsed_as_of.astimezone(timezone.utc)).total_seconds() / 3600), 2)
 
 
 def _extract_close_series(payload: dict[str, object]) -> dict[str, list[tuple[str, float]]]:

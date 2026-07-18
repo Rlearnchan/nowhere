@@ -95,7 +95,8 @@ def test_build_fixture_bundle_creates_publish_artifacts(tmp_path: Path) -> None:
 
     html = result.html_path.read_text(encoding="utf-8")
     assert "지수는 복원됐지만" in html
-    assert "Public publish allowed" in html
+    assert "데이터 상태" in html
+    assert "브리프 상태" in html
     assert "Briefing pulse" in html
     assert "source-list" in html
     assert "nowhere-lightweight-chart" in html
@@ -323,6 +324,47 @@ def test_source_adapters_normalize_fixture_inputs() -> None:
     assert yf_obs[0].value["window_end"] == "2026-07-13T16:00:00+00:00"
     assert yf_obs[0].value["point_count"] == 2
     assert yf_obs[0].quality_flags == ["yahoo_terms_review_required"]
+
+
+def test_krx_live_fetch_auto_resolves_recent_nonempty_date(monkeypatch: pytest.MonkeyPatch) -> None:
+    root = Path(__file__).resolve().parents[1]
+    payload = (root / "fixtures/krx/kospi_index.json").read_text(encoding="utf-8")
+    calls: list[str] = []
+
+    def fake_fetch_payload(self: KrxIndexAdapter, endpoint: str, auth_key: str, bas_dd: str) -> tuple[str, str]:
+        calls.append(bas_dd)
+        if len(calls) == 1:
+            return '{"OutBlock_1": []}', "application/json"
+        return payload, "application/json"
+
+    monkeypatch.setattr(KrxIndexAdapter, "_fetch_payload", fake_fetch_payload)
+    monkeypatch.setattr("nowhere.sources.krx_adapter._candidate_bas_dds", lambda explicit, lookback: ["20260717", "20260716"])
+
+    adapter = KrxIndexAdapter(auth_key="test-key", market="KOSPI")
+    raw = adapter.fetch(SourceRequest(source_id="src-krx-kospi", params={"market": "KOSPI", "lookback_days": 2}))
+    obs = adapter.normalize(raw)
+
+    assert calls == ["20260717", "20260716"]
+    assert raw.metadata["bas_dd_resolved"] == "20260716"
+    assert raw.metadata["attempted_bas_dds"] == calls
+    assert obs[0].value["symbol"] == "KOSPI"
+
+
+def test_yfinance_adapter_flags_stale_global_context() -> None:
+    root = Path(__file__).resolve().parents[1]
+    raw = RawArtifact(
+        source_id="src-yfinance-fixture",
+        captured_at="2026-07-18T00:00:00+00:00",
+        payload=(root / "fixtures/yfinance/global_prices.json").read_text(encoding="utf-8"),
+        content_type="application/json",
+        rights_class="open_source_adapter",
+        metadata={"adapter": "yfinance", "stale_hours": 24},
+    )
+
+    obs = YFinanceAdapter().normalize(raw)
+
+    assert "market_data_stale" in obs[0].quality_flags
+    assert obs[0].value["freshness_age_hours"] > 24
 
 
 def test_datawrapper_plan_exports_csv_preview(tmp_path: Path) -> None:
@@ -1243,6 +1285,8 @@ def test_collect_fixture_sources_writes_adapter_contract_coverage(tmp_path: Path
     audit = load_json(adapter_dir / "source_audit.json")
 
     assert manifest["adapter_contract"]["required_fields"] == ["news_event", "index_snapshot", "global_price_latest"]
+    assert manifest["adapter_contract"]["source_profiles"]
+    assert manifest["adapter_contract"]["source_profiles"][0]["public_note"]
     assert audit["summary"]["coverage"]["valid"] is True
     assert audit["summary"]["coverage"]["missing_required_fields"] == []
     market = load_json(adapter_dir / "market_pack.json")

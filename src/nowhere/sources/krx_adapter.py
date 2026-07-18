@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 import json
 from pathlib import Path
 from typing import Any
 from urllib import request as urlrequest
 from urllib.parse import urlencode
+from zoneinfo import ZoneInfo
 
 from .base import Observation, RawArtifact, SourceHealth, SourceRequest
 
@@ -37,8 +38,42 @@ class KrxIndexAdapter:
         auth_key = str(params.get("auth_key") or self.auth_key or "")
         if not auth_key:
             raise RuntimeError("KRX live fetch requires KRX_AUTH_KEY")
-        bas_dd = str(params.get("bas_dd") or "")
+        requested_bas_dd = str(params.get("bas_dd") or "")
+        lookback_days = int(params.get("lookback_days") or 10)
         endpoint = str(params.get("endpoint") or _endpoint_for_market(market))
+        attempted: list[str] = []
+        payload = ""
+        content_type = "application/json"
+        resolved_bas_dd = ""
+        for bas_dd in _candidate_bas_dds(requested_bas_dd, lookback_days):
+            attempted.append(bas_dd)
+            payload, content_type = self._fetch_payload(endpoint, auth_key, bas_dd)
+            try:
+                rows = _rows(json.loads(payload))
+            except json.JSONDecodeError:
+                rows = []
+            if rows:
+                resolved_bas_dd = bas_dd
+                break
+        return RawArtifact(
+            source_id=request.source_id,
+            captured_at=_utc_now(),
+            payload=payload,
+            content_type=content_type,
+            rights_class=self.rights_class,
+            metadata={
+                "adapter": self.source_name,
+                "market": market,
+                "endpoint": endpoint,
+                "bas_dd": resolved_bas_dd or requested_bas_dd,
+                "bas_dd_requested": requested_bas_dd,
+                "bas_dd_resolved": resolved_bas_dd,
+                "attempted_bas_dds": attempted,
+                "lookback_days": lookback_days,
+            },
+        )
+
+    def _fetch_payload(self, endpoint: str, auth_key: str, bas_dd: str) -> tuple[str, str]:
         query = urlencode({"basDd": bas_dd} if bas_dd else {})
         url = f"{self.api_base}/{endpoint}" + (f"?{query}" if query else "")
         req = urlrequest.Request(url, method="GET")
@@ -47,14 +82,7 @@ class KrxIndexAdapter:
         with urlrequest.urlopen(req, timeout=30) as response:
             payload = response.read().decode("utf-8", errors="replace")
             content_type = response.headers.get("Content-Type", "application/json")
-        return RawArtifact(
-            source_id=request.source_id,
-            captured_at=_utc_now(),
-            payload=payload,
-            content_type=content_type,
-            rights_class=self.rights_class,
-            metadata={"adapter": self.source_name, "market": market, "endpoint": endpoint, "bas_dd": bas_dd},
-        )
+        return payload, content_type
 
     def normalize(self, raw: RawArtifact) -> list[Observation]:
         payload = json.loads(raw.payload)
@@ -92,6 +120,23 @@ def _endpoint_for_market(market: str) -> str:
     if market.upper() == "KOSDAQ":
         return "kosdaq_dd_trd"
     return "kospi_dd_trd"
+
+
+def _candidate_bas_dds(explicit_bas_dd: str, lookback_days: int) -> list[str]:
+    if explicit_bas_dd:
+        return [explicit_bas_dd]
+    today = datetime.now(ZoneInfo("Asia/Seoul")).date()
+    candidates: list[str] = []
+    for offset in range(max(lookback_days, 0) + 1):
+        day = today - timedelta(days=offset)
+        if day.weekday() >= 5:
+            continue
+        candidates.append(_format_bas_dd(day))
+    return candidates or [_format_bas_dd(today)]
+
+
+def _format_bas_dd(value: date) -> str:
+    return value.strftime("%Y%m%d")
 
 
 def _rows(payload: Any) -> list[dict[str, Any]]:

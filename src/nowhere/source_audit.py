@@ -17,9 +17,11 @@ WARNING_FLAGS = {
     "unverified_news_event",
     "single_point_window",
     "zero_window_start_price",
+    "market_data_stale",
+    "unparseable_market_timestamp",
 }
 NEWS_REVIEW_FLAGS = {"missing_market_links", "missing_reported_claims", "low_significance_hint", "unverified_news_event"}
-GLOBAL_PRICE_REVIEW_FLAGS = {"yahoo_terms_review_required", "single_point_window", "zero_window_start_price"}
+GLOBAL_PRICE_REVIEW_FLAGS = {"yahoo_terms_review_required", "single_point_window", "zero_window_start_price", "market_data_stale", "unparseable_market_timestamp"}
 
 
 def audit_adapter_outputs(
@@ -89,6 +91,8 @@ def audit_adapter_outputs(
         warnings.append(f"{len(news_flagged)} news events need editorial review")
     if global_price_flagged:
         warnings.append(f"{len(global_price_flagged)} global price observations need market data review")
+    if any("market_data_stale" in item.get("quality_flags", []) for item in global_price_flagged):
+        warnings.append("global context market data is stale")
 
     result = {
         "schema_version": "nowhere.source_audit.v1",

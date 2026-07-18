@@ -29,6 +29,7 @@ def collect_fixture_sources(
     krx_auth_key: str | None = None,
     krx_bas_dd: str | None = None,
     krx_markets: list[str] | None = None,
+    krx_lookback_days: int = 10,
 ) -> Path:
     repo_root = repo_root.resolve()
     output_root = (output_root or repo_root / "runs").resolve()
@@ -62,7 +63,7 @@ def collect_fixture_sources(
                 adapter,
                 SourceRequest(
                     f"src-krx-{market.lower()}",
-                    {"market": market, "bas_dd": krx_bas_dd or ""},
+                    {"market": market, "bas_dd": krx_bas_dd or "", "lookback_days": krx_lookback_days},
                 ),
             )
             raw_artifacts.append(raw)
@@ -132,7 +133,9 @@ def collect_fixture_sources(
                 "public_web_restricted": "review_only_not_redistributable",
                 "open_source_adapter": "terms_review_required",
                 "internal_licensed": "internal_use_allowed",
+                "public_official": "official_api_terms_review",
             },
+            "source_profiles": _source_profiles(raw_artifacts),
         },
     }
     _write_json(out_dir / "manifest.json", manifest)
@@ -258,7 +261,7 @@ def _global_from_observation(obs: Observation) -> dict[str, Any]:
     }
     if value.get("change_pct_from_window_start") is not None:
         result["change_pct"] = float(value["change_pct_from_window_start"])
-    for key in ("window_start", "window_end", "point_count", "period", "interval"):
+    for key in ("window_start", "window_end", "point_count", "period", "interval", "freshness_age_hours", "stale_hours"):
         if value.get(key) is not None:
             result[key] = value[key]
     return result
@@ -299,6 +302,52 @@ def _news_sources(raw_artifacts: list[RawArtifact]) -> list[dict[str, Any]]:
     return result
 
 
+def _source_profiles(raw_artifacts: list[RawArtifact]) -> list[dict[str, Any]]:
+    profiles = []
+    for raw in raw_artifacts:
+        adapter = str(raw.metadata.get("adapter", raw.source_id))
+        profile = {
+            "source_id": raw.source_id,
+            "adapter": adapter,
+            "rights_class": raw.rights_class,
+            "retrieved_at": raw.captured_at,
+            "role": _source_role(raw),
+            "public_note": _public_source_note(raw),
+        }
+        if raw.metadata.get("bas_dd_resolved"):
+            profile["resolved_trade_date"] = raw.metadata["bas_dd_resolved"]
+        if raw.metadata.get("attempted_bas_dds"):
+            profile["attempted_trade_dates"] = raw.metadata["attempted_bas_dds"]
+        profiles.append(profile)
+    return profiles
+
+
+def _source_role(raw: RawArtifact) -> str:
+    adapter = raw.metadata.get("adapter")
+    if adapter == "jibi":
+        return "news"
+    if adapter == "yfinance":
+        return "global_market_context"
+    if adapter == "krx_openapi":
+        return "korea_market_index"
+    if adapter == "naver_finance_snapshot":
+        return "prototype_market_index"
+    return "supporting_data"
+
+
+def _public_source_note(raw: RawArtifact) -> str:
+    adapter = raw.metadata.get("adapter")
+    if adapter == "krx_openapi":
+        return "Official KRX index snapshot; publication terms still require review."
+    if adapter == "yfinance":
+        return "Global market context from Yahoo Finance via yfinance; use as supporting context."
+    if adapter == "jibi":
+        return "Licensed news input normalized through jibi."
+    if adapter == "naver_finance_snapshot":
+        return "Prototype fallback snapshot; not for public redistribution."
+    return "Collected source adapter output."
+
+
 def _artifact_url(raw: RawArtifact) -> str:
     if raw.raw_path:
         return f"urn:local-fixture:{raw.raw_path.name}"
@@ -326,6 +375,8 @@ def _market_warnings(index_items: list[Observation], global_items: list[Observat
         warnings.append("KRX official API values require terms and redistribution review")
     if global_items:
         warnings.append("yfinance values require Yahoo terms review")
+    if any("market_data_stale" in obs.quality_flags for obs in global_items):
+        warnings.append("global context prices are stale relative to collection time")
     return warnings
 
 

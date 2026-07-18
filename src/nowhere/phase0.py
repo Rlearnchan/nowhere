@@ -477,6 +477,88 @@ def build_qa_report(
     }
 
 
+def build_reader_status_cards(packs: dict[str, Any], qa_report: dict[str, Any]) -> list[dict[str, str]]:
+    market = packs["market_pack"]
+    news = packs["news_pack"]
+    indices = market.get("indices", [])
+    global_context = market.get("global_context", [])
+    events = news.get("events", [])
+
+    if not indices:
+        korea_tone = "blocked"
+        korea_status = "시장 지수 없음"
+        korea_detail = "한국 시장 기준 데이터가 아직 연결되지 않았습니다."
+    elif any(str(item.get("source_id", "")).startswith("src-krx") for item in indices):
+        korea_tone = "ok"
+        korea_status = "KRX 기준"
+        korea_detail = "한국 지수는 KRX 공식 API 스냅샷을 기준으로 표시합니다."
+    elif any(item.get("redistribution_allowed") is False for item in indices):
+        korea_tone = "review"
+        korea_status = "대체 데이터"
+        korea_detail = "프로토타입 스냅샷이 포함되어 공개 재배포 기준 확인이 필요합니다."
+    else:
+        korea_tone = "ok"
+        korea_status = "수집 완료"
+        korea_detail = "한국 시장 지수 스냅샷이 수집되었습니다."
+
+    global_flags = {flag for item in global_context for flag in item.get("quality_flags", [])}
+    if not global_context:
+        global_tone = "review"
+        global_status = "보조지표 없음"
+        global_detail = "해외 ETF 등 글로벌 비교 지표가 아직 비어 있습니다."
+    elif "market_data_stale" in global_flags:
+        global_tone = "review"
+        global_status = "최신성 확인"
+        global_detail = "글로벌 보조지표의 마지막 가격 시점이 수집 시점보다 오래되었습니다."
+    else:
+        global_tone = "review" if global_flags else "ok"
+        global_status = "보조 맥락"
+        global_detail = "Yahoo Finance 기반 글로벌 가격은 방향성 참고용으로 함께 표시합니다."
+
+    news_flags = {flag for event in events for flag in event.get("quality_flags", [])}
+    if not events:
+        news_tone = "blocked"
+        news_status = "뉴스 없음"
+        news_detail = "뉴스 근거가 아직 연결되지 않았습니다."
+    elif news_flags.intersection({"missing_market_links", "missing_reported_claims", "unverified_news_event"}):
+        news_tone = "review"
+        news_status = "연결 확인"
+        news_detail = "뉴스 원문은 수집됐고, 시장 연결과 요약 근거는 보강 대상입니다."
+    else:
+        news_tone = "ok"
+        news_status = "근거 연결"
+        news_detail = "뉴스 이벤트와 시장 연결 근거가 함께 정리되어 있습니다."
+
+    approval = packs["editorial_memo"].get("approval", {})
+    if approval.get("status") == "approved" and qa_report.get("status") == "ok":
+        editorial_tone = "ok"
+        editorial_status = "게시 가능"
+        editorial_detail = "편집 승인과 데이터 검사가 모두 통과했습니다."
+    elif qa_report.get("status") == "blocked":
+        editorial_tone = "blocked"
+        editorial_status = "보완 필요"
+        editorial_detail = "필수 근거 또는 계약 검증에 막힌 항목이 있습니다."
+    else:
+        editorial_tone = "review"
+        editorial_status = "초안"
+        editorial_detail = "자동 생성 초안입니다. 핵심 흐름과 근거를 확인하며 읽어주세요."
+
+    return [
+        {"label": "한국 시장", "status": korea_status, "detail": korea_detail, "tone": korea_tone},
+        {"label": "글로벌 맥락", "status": global_status, "detail": global_detail, "tone": global_tone},
+        {"label": "뉴스 근거", "status": news_status, "detail": news_detail, "tone": news_tone},
+        {"label": "브리프 상태", "status": editorial_status, "detail": editorial_detail, "tone": editorial_tone},
+    ]
+
+
+def reader_status_label(qa_status: str) -> str:
+    if qa_status == "ok":
+        return "읽기 준비"
+    if qa_status == "blocked":
+        return "보완 필요"
+    return "초안"
+
+
 def render_html_brief(packs: dict[str, Any], qa_report: dict[str, Any]) -> str:
     market = packs["market_pack"]
     news = packs["news_pack"]
@@ -523,6 +605,16 @@ def render_html_brief(packs: dict[str, Any], qa_report: dict[str, Any]) -> str:
         f'<span class="source-chip">{escape(src.get("rights_class", "unknown"))}</span>'
         for src in source_items
     )
+    status_cards = "\n".join(
+        f"""
+        <section class="status-card {escape(card['tone'])}">
+          <p class="status-label">{escape(card['label'])}</p>
+          <strong>{escape(card['status'])}</strong>
+          <p>{escape(card['detail'])}</p>
+        </section>
+        """
+        for card in build_reader_status_cards(packs, qa_report)
+    )
     qa_warnings = "\n".join(f"<li>{escape(item)}</li>" for item in qa_report.get("warnings", []))
     qa_badge_class = "ok" if qa_report["status"] == "ok" else "review" if qa_report["status"] == "review_needed" else "blocked"
     kospi_breadth = breadth.get("KOSPI", {}).get("advancer_ratio_ex_flat_pct", 0)
@@ -551,7 +643,15 @@ def render_html_brief(packs: dict[str, Any], qa_report: dict[str, Any]) -> str:
     .badge.blocked {{ border-color: #c8463a; color: #9d2f26; }}
     .source-chip {{ background: #eef3f6; }}
     .grid {{ display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }}
-    .metric, .panel {{ background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; }}
+    .status-grid {{ display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 18px; }}
+    .status-card, .metric, .panel {{ background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; }}
+    .status-card {{ min-height: 116px; }}
+    .status-card strong {{ display: block; margin: 4px 0 6px; font-size: 17px; color: #102332; }}
+    .status-card p {{ margin: 0; color: #4e6070; }}
+    .status-label {{ color: var(--muted) !important; font-size: 12px; }}
+    .status-card.ok {{ border-top: 4px solid #4b9b68; }}
+    .status-card.review {{ border-top: 4px solid #d8a63c; }}
+    .status-card.blocked {{ border-top: 4px solid #c8463a; }}
     .metric {{ display: grid; gap: 4px; }}
     .value {{ margin: 0; font-size: 30px; font-weight: 700; color: #102332; }}
     .change {{ margin: 0; font-weight: 700; }}
@@ -573,7 +673,8 @@ def render_html_brief(packs: dict[str, Any], qa_report: dict[str, Any]) -> str:
     .source-list {{ display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }}
     .source-list li {{ display: grid; grid-template-columns: 150px 1fr auto; gap: 10px; border-bottom: 1px solid var(--line); padding: 7px 0; }}
     .source-list span, .source-list em {{ color: var(--muted); font-size: 12px; font-style: normal; }}
-    @media (max-width: 760px) {{ main {{ padding: 22px 14px 44px; }} .grid, .brief-grid {{ grid-template-columns: 1fr; }} h1 {{ font-size: 28px; }} .source-list li {{ grid-template-columns: 1fr; gap: 2px; }} }}
+    @media (max-width: 900px) {{ .status-grid {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }} }}
+    @media (max-width: 760px) {{ main {{ padding: 22px 14px 44px; }} .grid, .brief-grid, .status-grid {{ grid-template-columns: 1fr; }} h1 {{ font-size: 28px; }} .source-list li {{ grid-template-columns: 1fr; gap: 2px; }} }}
     @media print {{ body {{ background: white; }} main {{ max-width: none; padding: 18mm; }} .panel, .metric, table {{ break-inside: avoid; }} }}
   </style>
 </head>
@@ -581,13 +682,14 @@ def render_html_brief(packs: dict[str, Any], qa_report: dict[str, Any]) -> str:
 <main>
   <header>
     <div class="topline">
-      <span class="badge {qa_badge_class}">QA {escape(qa_report['status'])}</span>
+      <span class="badge {qa_badge_class}">데이터 상태 {escape(reader_status_label(qa_report['status']))}</span>
       <span class="meta">NOWHERE NOON BRIEF</span>
       <span class="meta">{escape(market['run']['market_as_of'])}</span>
     </div>
     <h1>{escape(editorial['title'])}</h1>
     <p class="one-liner">{escape(editorial['one_liner'])}</p>
     <div class="source-strip">{source_chips}</div>
+    <div class="status-grid">{status_cards}</div>
   </header>
 
   <h2>Market Snapshot</h2>
@@ -622,9 +724,9 @@ def render_html_brief(packs: dict[str, Any], qa_report: dict[str, Any]) -> str:
   <h2>Watchpoints</h2>
   <ul>{watchpoints}</ul>
 
-  <h2>Sources And QA</h2>
+  <h2>데이터 기준</h2>
   <section class="panel">
-    <p class="qa">Public publish allowed: {str(qa_report['public_publish_allowed']).lower()} · Approval: {escape(editorial['approval']['status'])}</p>
+    <p class="qa">브리프 상태: {escape(reader_status_label(qa_report['status']))} · 편집 상태: {escape(editorial['approval']['status'])}</p>
     <ul class="qa-list">{qa_warnings}</ul>
   </section>
   <ul class="source-list">{sources}</ul>

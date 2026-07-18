@@ -198,8 +198,9 @@ def build_parser() -> argparse.ArgumentParser:
     collect.add_argument("--live-yfinance", action="store_true", help="Fetch yfinance live data instead of fixture JSON")
     collect.add_argument("--yfinance-ticker", action="append", default=None)
     collect.add_argument("--live-krx", action="store_true", help="Fetch KRX official index data instead of Naver prototype fixtures")
-    collect.add_argument("--krx-bas-dd", default=None, help="KRX base date in YYYYMMDD; defaults to the latest API behavior")
+    collect.add_argument("--krx-bas-dd", default=None, help="KRX base date in YYYYMMDD; omit to auto-search recent Korean weekdays")
     collect.add_argument("--krx-market", action="append", default=None, help="KRX market to fetch, e.g. KOSPI or KOSDAQ")
+    collect.add_argument("--krx-lookback-days", type=int, default=10, help="Recent weekday search window when --krx-bas-dd is omitted")
     return parser
 
 
@@ -297,6 +298,7 @@ def main(argv: list[str] | None = None) -> int:
             live_krx=args.live_krx,
             krx_bas_dd=args.krx_bas_dd,
             krx_markets=args.krx_market,
+            krx_lookback_days=args.krx_lookback_days,
         )
         print(out_dir)
         return 0
