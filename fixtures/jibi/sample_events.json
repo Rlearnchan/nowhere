@@ -1,0 +1,16 @@
+{
+  "events": [
+    {
+      "id": "evt-json-01",
+      "published_at": "2026-07-21T09:12:00+09:00",
+      "headline": "반도체 수출 기대가 코스피 대형주를 지지",
+      "source": "yonhap-infomax",
+      "status": "confirmed",
+      "score": 82,
+      "companies": ["삼성전자", "SK하이닉스"],
+      "symbols": ["005930", "000660"],
+      "summary": "AI 서버 수요 기대와 원화 약세가 반도체 대형주 투자심리를 지지했다.",
+      "market_connection": ["KOSPI 대형주", "반도체 업종"]
+    }
+  ]
+}

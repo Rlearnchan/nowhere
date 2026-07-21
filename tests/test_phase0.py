@@ -12,12 +12,13 @@ from nowhere.phase0 import build_fixture_bundle
 from nowhere.publish import build_publish_dry_run
 from nowhere import cpanel as cpanel_module
 from nowhere import datawrapper as datawrapper_module
+from nowhere import editorial_llm as editorial_llm_module
 from nowhere.cpanel import CpanelClient, _cpanel_response_verdict, probe_cpanel, publish_cpanel, verify_public_urls
 from nowhere.approval import approval_snapshot_status, approve_run
 from nowhere.datawrapper import DatawrapperClient, chart_to_csv, plan_datawrapper, probe_datawrapper, verify_datawrapper_urls
 from nowhere.execution_status import summarize_execution_status
 from nowhere.sources.base import RawArtifact, SourceRequest
-from nowhere.sources.jibi import JibiJsonlAdapter
+from nowhere.sources.jibi import JibiInputAdapter, JibiJsonlAdapter
 from nowhere.sources.krx_adapter import KrxIndexAdapter
 from nowhere.sources.naver_snapshot import NaverSnapshotAdapter
 from nowhere.sources.yfinance_adapter import YFinanceAdapter
@@ -285,6 +286,15 @@ def test_source_adapters_normalize_fixture_inputs() -> None:
     assert "missing_reported_claims" in jibi_obs[0].quality_flags
     assert "low_significance_hint" in jibi_obs[0].quality_flags
     assert "unverified_news_event" in jibi_obs[0].quality_flags
+
+    jibi_json = JibiInputAdapter(root / "fixtures/jibi/sample_events.json")
+    jibi_json_obs = jibi_json.normalize(jibi_json.fetch(SourceRequest(source_id="src-jibi-json")))
+    assert jibi_json_obs[0].observation_id == "evt-json-01"
+    assert jibi_json_obs[0].value["source_ids"] == ["yonhap-infomax"]
+    assert jibi_json_obs[0].value["status"] == "confirmed"
+    assert jibi_json_obs[0].value["significance_hint"] == 0.82
+    assert jibi_json_obs[0].value["market_links"] == ["KOSPI 대형주", "반도체 업종"]
+    assert "unverified_news_event" not in jibi_json_obs[0].quality_flags
 
     naver = NaverSnapshotAdapter(root / "fixtures/naver/kospi_snapshot.json")
     naver_raw = naver.fetch(SourceRequest(source_id="src-naver-fixture"))
@@ -1401,6 +1411,54 @@ def test_build_collected_bundle_promotes_adapter_outputs(tmp_path: Path) -> None
     assert editorial["stories"][0]["confidence"] == "low"
     assert article["artifacts"]["lightweight_bootstrap"] == "site/chart_bootstrap.js"
     assert (result.run_dir / "adapter_outputs/source_audit.json").exists()
+
+
+def test_build_collected_bundle_records_rule_editorial_generation(tmp_path: Path) -> None:
+    root = Path(__file__).resolve().parents[1]
+    adapter_dir = collect_fixture_sources(root, "collected-rules", output_root=tmp_path)
+
+    result = build_collected_bundle(
+        repo_root=root,
+        adapter_output_dir=adapter_dir,
+        run_id="collected-rules-brief",
+        output_root=tmp_path,
+        render_pdf=False,
+        editorial_mode="rules",
+    )
+
+    generation = load_json(result.run_dir / "adapter_outputs/editorial_generation.json")
+
+    assert generation == {"mode": "rules", "status": "ok"}
+
+
+def test_build_collected_bundle_uses_llm_editorial_mode(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    root = Path(__file__).resolve().parents[1]
+    adapter_dir = collect_fixture_sources(root, "collected-llm", output_root=tmp_path)
+
+    def fake_llm(run_id, market, news, mode="auto", model=None):
+        memo = draft_editorial_memo(run_id, market, news)
+        memo["title"] = "LLM generated market draft"
+        memo["summary_bullets"][0] = "LLM summary bullet."
+        return memo, {"mode": mode, "status": "llm", "model": model or "fake-small"}
+
+    monkeypatch.setattr(editorial_llm_module, "draft_editorial_memo_auto", fake_llm)
+
+    result = build_collected_bundle(
+        repo_root=root,
+        adapter_output_dir=adapter_dir,
+        run_id="collected-llm-brief",
+        output_root=tmp_path,
+        render_pdf=False,
+        editorial_mode="auto",
+        editorial_model="fake-small",
+    )
+
+    editorial = load_json(result.run_dir / "editorial_memo.json")
+    generation = load_json(result.run_dir / "adapter_outputs/editorial_generation.json")
+
+    assert editorial["title"] == "LLM generated market draft"
+    assert editorial["summary_bullets"][0] == "LLM summary bullet."
+    assert generation == {"mode": "auto", "status": "llm", "model": "fake-small"}
 
 
 def test_draft_editorial_memo_is_contract_valid_for_collected_packs(tmp_path: Path) -> None:

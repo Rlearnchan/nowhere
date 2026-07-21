@@ -17,13 +17,27 @@ def build_collected_bundle(
     output_root: Path | None = None,
     editorial_memo_path: Path | None = None,
     render_pdf: bool = True,
+    editorial_mode: str = "rules",
+    editorial_model: str | None = None,
 ) -> Phase0Result:
     repo_root = repo_root.resolve()
     adapter_output_dir = adapter_output_dir.resolve()
     market = load_json(adapter_output_dir / "market_pack.json")
     news = load_json(adapter_output_dir / "news_pack.json")
     resolved_run_id = run_id or market.get("run", {}).get("run_id") or news.get("run_id") or adapter_output_dir.parent.name
-    editorial = load_json(editorial_memo_path.resolve()) if editorial_memo_path else draft_editorial_memo(resolved_run_id, market, news)
+    if editorial_memo_path:
+        editorial = load_json(editorial_memo_path.resolve())
+        editorial_generation = {"mode": "provided", "status": "ok"}
+    else:
+        from .editorial_llm import draft_editorial_memo_auto
+
+        editorial, editorial_generation = draft_editorial_memo_auto(
+            resolved_run_id,
+            market,
+            news,
+            mode=editorial_mode,
+            model=editorial_model,
+        )
     editorial["run_id"] = resolved_run_id
 
     with TemporaryDirectory() as tmpdir:
@@ -52,6 +66,9 @@ def build_collected_bundle(
         target.parent.mkdir(parents=True, exist_ok=True)
         if manifest.resolve() != target.resolve():
             shutil.copy2(manifest, target)
+    generation_path = result.run_dir / "adapter_outputs" / "editorial_generation.json"
+    generation_path.parent.mkdir(parents=True, exist_ok=True)
+    _write_json(generation_path, editorial_generation)
     return result
 
 

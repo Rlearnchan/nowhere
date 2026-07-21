@@ -135,7 +135,7 @@ Datawrapper execute는 생성, 데이터 업로드, publish 호출까지 수행�
 
 초기 source adapter는 `src/nowhere/sources/`에 있습니다.
 
-- `JibiJsonlAdapter`: jibi 뉴스 JSONL fixture 입력
+- `JibiInputAdapter` / `JibiJsonlAdapter`: jibi 뉴스 JSONL, JSON 배열, wrapper JSON(`events`, `items`, `candidates`, `articles`) 입력
 - `YFinanceAdapter`: `.[market]` extra 설치 후 글로벌 가격 fetch
 - `NaverSnapshotAdapter`: fixture 기반 prototype, `public_web_restricted`와 재배포 제한 플래그 유지. collected `market_pack.indices`와 chart payload에도 `prototype_only`, `redistribution_allowed: false`, `rights_class`가 보존됩니다.
 
@@ -145,6 +145,10 @@ fixture adapter를 묶어 contract-valid 초안 pack을 만들 수 있습니다.
 python -m nowhere.cli brief collect-fixtures --run-id collect-demo
 python -m nowhere.cli brief source-audit runs/collect-demo/adapter_outputs
 python -m nowhere.cli brief build-collected runs/collect-demo/adapter_outputs --run-id collect-demo-brief
+
+# optional LLM editorial memo draft. auto uses OPENAI_API_KEY when configured and falls back to rules on failure.
+python -m nowhere.cli brief build-collected runs/collect-demo/adapter_outputs \
+  --run-id collect-demo-llm-brief --editorial-mode auto
 
 # yfinance live smoke, still Naver/jibi fixture-based
 python -m nowhere.cli brief collect-fixtures --run-id collect-live-yf \
@@ -176,6 +180,8 @@ adapter_outputs/
 `source_audit.json`은 stale 관측값, Naver prototype/review-only 스냅샷과 재배포 제한, yfinance 약관 검토 플래그와 글로벌 가격 window 품질 플래그(`single_point_window`, `zero_window_start_price`, `market_data_stale`, `unparseable_market_timestamp`), jibi source ID 누락과 뉴스 품질 플래그(`missing_market_links`, `missing_reported_claims`, `low_significance_hint`, `unverified_news_event`) 같은 운영 경고를 preflight에 전달합니다. collector가 만든 `manifest.json`에는 `adapter_contract.required_fields`와 `adapter_contract.source_profiles`가 함께 기록되며, `news_event`, `index_snapshot`, `global_price_latest` 중 누락된 필드가 있으면 source audit이 blocked가 되어 preflight도 발행을 차단합니다. `build-collected`는 adapter output의 `market_pack.json`/`news_pack.json`에 draft editorial memo를 붙여 Phase 0 publish bundle로 승격합니다.
 
 공개 HTML/PDF 상단에는 내부 QA 용어 대신 독자가 읽을 수 있는 상태 카드가 표시됩니다. 한국 시장은 KRX/대체 데이터 여부, 글로벌 맥락은 Yahoo Finance 최신성, 뉴스 근거는 시장 연결 보강 필요 여부, 브리프 상태는 초안/게시 가능 여부를 나눠 보여줍니다.
+
+`build-collected --editorial-mode auto`는 오케스트레이터 `.env`의 `OPENAI_API_KEY`를 먼저 사용해 작은 LLM 초안을 만들고, 실패하거나 키가 없으면 rules 초안으로 fallback합니다. `--editorial-mode llm`은 LLM 실패를 그대로 실패 처리하고, `--editorial-mode rules`는 외부 호출 없이 기존 규칙 기반 초안을 생성합니다. 모델은 `--editorial-model` 또는 `NOWHERE_EDITORIAL_MODEL`로 바꿀 수 있습니다. 생성 방식은 `adapter_outputs/editorial_generation.json`에 기록됩니다.
 
 ## 권장 첫 구현 순서
 

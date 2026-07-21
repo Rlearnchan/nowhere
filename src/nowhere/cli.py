@@ -91,6 +91,8 @@ def build_parser() -> argparse.ArgumentParser:
     collected.add_argument("--run-id", default=None)
     collected.add_argument("--output-root", type=Path, default=None)
     collected.add_argument("--editorial-memo", type=Path, default=None, help="Optional editorial_memo.json override")
+    collected.add_argument("--editorial-mode", choices=["rules", "auto", "llm"], default="rules", help="Generate editorial memo with rules, LLM auto fallback, or required LLM")
+    collected.add_argument("--editorial-model", default=None, help="Optional OpenAI model for LLM editorial memo drafting")
     collected.add_argument("--no-pdf", action="store_true", help="Skip local PDF rendering")
 
     publish = brief_subparsers.add_parser(
@@ -231,6 +233,8 @@ def main(argv: list[str] | None = None) -> int:
             output_root=args.output_root,
             editorial_memo_path=args.editorial_memo,
             render_pdf=not args.no_pdf,
+            editorial_mode=args.editorial_mode,
+            editorial_model=args.editorial_model,
         )
         print(result.run_dir)
         return 0
