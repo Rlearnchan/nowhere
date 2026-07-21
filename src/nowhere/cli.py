@@ -196,6 +196,8 @@ def build_parser() -> argparse.ArgumentParser:
     collect.add_argument("--jibi", type=Path, default=None)
     collect.add_argument("--naver", type=Path, action="append", default=None)
     collect.add_argument("--naver-url", action="append", default=None, help="Explicit Naver prototype URL; enables live Naver fetch")
+    collect.add_argument("--live-naver-index", action="store_true", help="Fetch live Naver KOSPI/KOSDAQ index snapshots for intraday/latest context")
+    collect.add_argument("--naver-index-symbol", action="append", default=None, help="Naver index symbol to fetch, e.g. KOSPI or KOSDAQ")
     collect.add_argument("--yfinance", type=Path, default=None)
     collect.add_argument("--live-yfinance", action="store_true", help="Fetch yfinance live data instead of fixture JSON")
     collect.add_argument("--yfinance-ticker", action="append", default=None)
@@ -303,6 +305,8 @@ def main(argv: list[str] | None = None) -> int:
             live_yfinance=args.live_yfinance,
             yfinance_tickers=args.yfinance_ticker,
             naver_urls=args.naver_url,
+            live_naver_index=args.live_naver_index,
+            naver_index_symbols=args.naver_index_symbol,
             live_krx=args.live_krx,
             krx_bas_dd=args.krx_bas_dd,
             krx_markets=args.krx_market,

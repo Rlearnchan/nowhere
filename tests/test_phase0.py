@@ -5,7 +5,7 @@ from pathlib import Path
 
 from nowhere.audit import audit_run
 from nowhere.chart_contracts import validate_chart_files, validate_chart_payloads
-from nowhere.collect import collect_fixture_sources
+from nowhere.collect import build_market_pack_from_observations, collect_fixture_sources
 from nowhere.collected import build_collected_bundle, draft_editorial_memo
 from nowhere.contracts import load_json, validate_contract
 from nowhere.phase0 import build_fixture_bundle
@@ -17,7 +17,7 @@ from nowhere.cpanel import CpanelClient, _cpanel_response_verdict, probe_cpanel,
 from nowhere.approval import approval_snapshot_status, approve_run
 from nowhere.datawrapper import DatawrapperClient, chart_to_csv, plan_datawrapper, probe_datawrapper, verify_datawrapper_urls
 from nowhere.execution_status import summarize_execution_status
-from nowhere.sources.base import RawArtifact, SourceRequest
+from nowhere.sources.base import Observation, RawArtifact, SourceRequest
 from nowhere.sources.jibi import JibiInputAdapter, JibiJsonlAdapter
 from nowhere.sources.krx_adapter import KrxIndexAdapter
 from nowhere.sources.naver_snapshot import NaverSnapshotAdapter, NaverStockSnapshotAdapter
@@ -408,6 +408,112 @@ def test_krx_adapter_emits_sector_rankings_from_detailed_rows() -> None:
     assert len(sectors) == 2
     assert sectors[0].value["sector"] == "코스피 전기전자"
 
+
+
+def test_naver_basic_index_payload_normalizes_intraday_snapshot() -> None:
+    raw = RawArtifact(
+        source_id="src-naver-index-kospi",
+        captured_at="2026-07-21T07:04:00+00:00",
+        payload=json.dumps(
+            {
+                "itemCode": "KOSPI",
+                "stockName": "코스피",
+                "closePrice": "6,747.95",
+                "compareToPreviousClosePrice": "231.68",
+                "compareToPreviousPrice": {"code": "2", "text": "상승"},
+                "fluctuationsRatio": "3.56",
+                "marketStatus": "CLOSE",
+                "localTradedAt": "2026-07-21T16:04:00+09:00",
+                "delayTimeName": "실시간",
+            },
+            ensure_ascii=False,
+        ),
+        content_type="application/json",
+        rights_class="public_web_restricted",
+        metadata={"adapter": "naver_finance_snapshot", "prototype_only": True},
+    )
+
+    obs = NaverSnapshotAdapter(symbol="KOSPI").normalize(raw)[0]
+
+    assert obs.field_name == "index_snapshot"
+    assert obs.value["symbol"] == "KOSPI"
+    assert obs.value["last"] == 6747.95
+    assert obs.value["change"] == 231.68
+    assert obs.value["change_pct"] == 3.56
+    assert obs.as_of == "2026-07-21T16:04:00+09:00"
+
+
+def test_market_pack_prefers_latest_index_snapshot_per_symbol() -> None:
+    krx = Observation(
+        observation_id="krx-kospi-20260720-1",
+        source_id="src-krx-kospi",
+        field_name="index_snapshot",
+        value={
+            "evidence_id": "krx-kospi-20260720-1",
+            "symbol": "KOSPI",
+            "name": "코스피",
+            "last": 6516.27,
+            "change": -304.33,
+            "change_pct": -4.46,
+            "prev_close": 6820.60,
+            "open": 6643.58,
+            "high": 6814.86,
+            "low": 6472.80,
+            "as_of": "2026-07-20T15:30:00+09:00",
+        },
+        unit="index_point",
+        as_of="2026-07-20T15:30:00+09:00",
+        quality_flags=["krx_terms_review_required"],
+        rights_class="public_official",
+    )
+    naver = Observation(
+        observation_id="naver-index-kospi-2026-07-21",
+        source_id="src-naver-index-kospi",
+        field_name="index_snapshot",
+        value={
+            "evidence_id": "naver-index-kospi-2026-07-21",
+            "symbol": "KOSPI",
+            "name": "코스피",
+            "last": 6747.95,
+            "change": 231.68,
+            "change_pct": 3.56,
+            "prev_close": 6516.27,
+            "open": 6747.95,
+            "high": 6747.95,
+            "low": 6747.95,
+            "as_of": "2026-07-21T16:04:00+09:00",
+        },
+        unit="index_point",
+        as_of="2026-07-21T16:04:00+09:00",
+        quality_flags=["prototype_only", "redistribution_restricted"],
+        rights_class="public_web_restricted",
+    )
+    raw_artifacts = [
+        RawArtifact(
+            source_id="src-krx-kospi",
+            captured_at="2026-07-21T06:49:12+00:00",
+            payload="{}",
+            content_type="application/json",
+            rights_class="public_official",
+            metadata={"adapter": "krx_openapi"},
+        ),
+        RawArtifact(
+            source_id="src-naver-index-kospi",
+            captured_at="2026-07-21T07:04:00+00:00",
+            payload="{}",
+            content_type="application/json",
+            rights_class="public_web_restricted",
+            metadata={"adapter": "naver_finance_snapshot", "prototype_only": True},
+        ),
+    ]
+
+    market = build_market_pack_from_observations("latest-index", [krx, naver], raw_artifacts)
+
+    assert len(market["indices"]) == 1
+    assert market["indices"][0]["source_id"] == "src-naver-index-kospi"
+    assert market["indices"][0]["change_pct"] == 3.56
+    assert market["run"]["market_as_of"] == "2026-07-21T16:04:00+09:00"
+    assert any("intraday/latest" in warning for warning in market["run"]["warnings"])
 
 def test_collected_market_pack_includes_featured_stocks_and_sector_rankings(tmp_path: Path) -> None:
     root = Path(__file__).resolve().parents[1]

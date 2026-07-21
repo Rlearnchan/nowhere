@@ -12,10 +12,12 @@ from .base import Observation, RawArtifact, SourceHealth, SourceRequest
 class NaverSnapshotAdapter:
     source_name = "naver_finance_snapshot"
     rights_class = "public_web_restricted"
+    api_base = "https://m.stock.naver.com/api/index"
 
-    def __init__(self, fixture_path: Path | None = None, url: str | None = None) -> None:
+    def __init__(self, fixture_path: Path | None = None, url: str | None = None, symbol: str | None = None) -> None:
         self.fixture_path = fixture_path
         self.url = url
+        self.symbol = (symbol or "").upper()
 
     def fetch(self, request: SourceRequest) -> RawArtifact:
         if self.fixture_path:
@@ -28,8 +30,17 @@ class NaverSnapshotAdapter:
                 payload = response.read().decode("utf-8", errors="replace")
                 content_type = response.headers.get("Content-Type", "text/html")
             raw_path = None
+        elif self.symbol:
+            req = urlrequest.Request(
+                f"{self.api_base}/{self.symbol}/basic",
+                headers={"User-Agent": "nowhere-internal-snapshot/0.1"},
+            )
+            with urlrequest.urlopen(req, timeout=20) as response:
+                payload = response.read().decode("utf-8", errors="replace")
+                content_type = response.headers.get("Content-Type", "application/json")
+            raw_path = None
         else:
-            raise RuntimeError("Naver prototype fetch requires a fixture_path or explicit url")
+            raise RuntimeError("Naver prototype fetch requires a fixture_path, explicit url, or symbol")
         return RawArtifact(
             source_id=request.source_id,
             captured_at=datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -37,7 +48,13 @@ class NaverSnapshotAdapter:
             content_type=content_type,
             rights_class=self.rights_class,
             raw_path=raw_path,
-            metadata={"adapter": self.source_name, "prototype_only": True, "redistribution_warning": True, "url": self.url},
+            metadata={
+                "adapter": self.source_name,
+                "prototype_only": True,
+                "redistribution_warning": True,
+                "url": self.url,
+                "symbol": self.symbol,
+            },
         )
 
     def normalize(self, raw: RawArtifact) -> list[Observation]:
@@ -60,7 +77,9 @@ class NaverSnapshotAdapter:
             return SourceHealth("naver_finance_snapshot", "ok", "fixture mode")
         if self.url:
             return SourceHealth("naver_finance_snapshot", "review_needed", "live prototype mode")
-        return SourceHealth("naver_finance_snapshot", "review_needed", "prototype adapter requires fixture or explicit url")
+        if self.symbol:
+            return SourceHealth("naver_finance_snapshot", "review_needed", "live index prototype mode")
+        return SourceHealth("naver_finance_snapshot", "review_needed", "prototype adapter requires fixture, explicit url, or symbol")
 
 
 
@@ -148,7 +167,10 @@ class _ScriptJsonParser(HTMLParser):
 def _load_snapshot_payload(payload: str) -> dict[str, object]:
     stripped = payload.lstrip()
     if stripped.startswith("{"):
-        return json.loads(payload)
+        data = json.loads(payload)
+        if isinstance(data, dict) and {"itemCode", "closePrice", "localTradedAt"}.issubset(data.keys()):
+            return _index_snapshot_from_basic_payload(data)
+        return data
 
     parser = _ScriptJsonParser()
     parser.feed(payload)
@@ -161,6 +183,41 @@ def _load_snapshot_payload(payload: str) -> dict[str, object]:
         if extracted is not None:
             return extracted
     raise ValueError("could not find Naver snapshot JSON in payload")
+
+
+
+def _index_snapshot_from_basic_payload(payload: dict[str, object]) -> dict[str, object]:
+    symbol = str(payload.get("itemCode") or payload.get("reutersCode") or payload.get("symbolCode") or "")
+    last = _number(payload.get("closePrice"))
+    change = _number(payload.get("compareToPreviousClosePrice"))
+    compare = payload.get("compareToPreviousPrice")
+    change_code = str(compare.get("code") or "") if isinstance(compare, dict) else ""
+    if change_code in {"4", "5"}:
+        change = -abs(change)
+    elif change_code == "2":
+        change = abs(change)
+    change_pct = _number(payload.get("fluctuationsRatio"))
+    if change < 0:
+        change_pct = -abs(change_pct)
+    elif change > 0:
+        change_pct = abs(change_pct)
+    as_of = str(payload.get("localTradedAt") or datetime.now(timezone.utc).isoformat(timespec="seconds"))
+    return {
+        "evidence_id": f"naver-index-{symbol.lower()}-{as_of[:10]}",
+        "symbol": symbol,
+        "name": str(payload.get("stockName") or symbol),
+        "last": last,
+        "change": change,
+        "change_pct": change_pct,
+        "prev_close": round(last - change, 6),
+        "open": last,
+        "high": last,
+        "low": last,
+        "unit": "index_point",
+        "as_of": as_of,
+        "market_status": str(payload.get("marketStatus") or ""),
+        "delay_time_name": str(payload.get("delayTimeName") or ""),
+    }
 
 
 def _find_snapshot_dict(value: object) -> dict[str, object] | None:

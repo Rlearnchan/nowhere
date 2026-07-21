@@ -25,6 +25,8 @@ def collect_fixture_sources(
     live_yfinance: bool = False,
     yfinance_tickers: list[str] | None = None,
     naver_urls: list[str] | None = None,
+    live_naver_index: bool = False,
+    naver_index_symbols: list[str] | None = None,
     live_krx: bool = False,
     krx_auth_key: str | None = None,
     krx_bas_dd: str | None = None,
@@ -72,13 +74,20 @@ def collect_fixture_sources(
             )
             raw_artifacts.append(raw)
             observations.extend(obs)
+
+    if live_naver_index:
+        for symbol in (naver_index_symbols or ["KOSPI", "KOSDAQ"]):
+            adapter = NaverSnapshotAdapter(symbol=symbol)
+            raw, obs = _run_adapter(adapter, SourceRequest(f"src-naver-index-{symbol.lower()}", {"symbol": symbol}))
+            raw_artifacts.append(raw)
+            observations.extend(obs)
     elif naver_urls:
         for idx, url in enumerate(naver_urls, start=1):
             adapter = NaverSnapshotAdapter(url=url)
             raw, obs = _run_adapter(adapter, SourceRequest(f"src-naver-live-{idx}"))
             raw_artifacts.append(raw)
             observations.extend(obs)
-    else:
+    elif not live_krx:
         for idx, path in enumerate(naver_paths, start=1):
             adapter = NaverSnapshotAdapter(path.resolve())
             raw, obs = _run_adapter(adapter, SourceRequest(f"src-naver-fixture-{idx}"))
@@ -167,7 +176,8 @@ def build_market_pack_from_observations(run_id: str, observations: list[Observat
     sector_items = [obs for obs in observations if obs.field_name == "sector_ranking"]
     featured_items = [obs for obs in observations if obs.field_name == "featured_stock_snapshot"]
     global_items = [obs for obs in observations if obs.field_name == "global_price_latest"]
-    market_as_of = max((obs.as_of for obs in index_items), default=_utc_now())
+    representative_index_items = _latest_index_observations(index_items)
+    market_as_of = max((obs.as_of for obs in representative_index_items), default=_utc_now())
     trade_date = market_as_of[:10]
     return {
         "schema_version": "market_pack.v1",
@@ -179,7 +189,7 @@ def build_market_pack_from_observations(run_id: str, observations: list[Observat
             "quality_status": "review_needed",
             "warnings": _market_warnings(index_items, sector_items, featured_items, global_items),
         },
-        "indices": [_index_from_observation(obs) for obs in index_items],
+        "indices": [_index_from_observation(obs) for obs in representative_index_items],
         "breadth": [],
         "flows": [],
         "fx": [],
@@ -191,12 +201,32 @@ def build_market_pack_from_observations(run_id: str, observations: list[Observat
             {
                 "observation_id": "collector-warning-01",
                 "text": "Collector-generated pack is a draft assembled from fixtures and requires human review.",
-                "evidence_ids": [obs.observation_id for obs in index_items[:1]] or ["collector-fixture"],
+                "evidence_ids": [obs.observation_id for obs in representative_index_items[:1]] or ["collector-fixture"],
                 "observation_type": "data_warning",
             }
         ],
         "sources": _market_sources(raw_artifacts),
     }
+
+
+
+def _latest_index_observations(index_items: list[Observation]) -> list[Observation]:
+    latest: dict[str, Observation] = {}
+    for obs in index_items:
+        if not isinstance(obs.value, dict):
+            continue
+        symbol = str(obs.value.get("symbol") or obs.observation_id).upper()
+        current = latest.get(symbol)
+        if current is None or _sort_time(obs.as_of) >= _sort_time(current.as_of):
+            latest[symbol] = obs
+    return [latest[key] for key in sorted(latest)]
+
+
+def _sort_time(value: str) -> datetime:
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return datetime.min.replace(tzinfo=timezone.utc)
 
 
 def build_news_pack_from_observations(run_id: str, observations: list[Observation], raw_artifacts: list[RawArtifact]) -> dict[str, Any]:
@@ -433,7 +463,7 @@ def _public_source_note(raw: RawArtifact) -> str:
     if adapter == "jibi":
         return "Licensed news input normalized through jibi."
     if adapter == "naver_finance_snapshot":
-        return "Prototype fallback snapshot; not for public redistribution."
+        return "Intraday/latest Naver market snapshot; internal-use prototype, not for public redistribution."
     if adapter == "naver_stock_snapshot":
         return "Internal-use Naver stock snapshot for news-linked featured stocks."
     return "Collected source adapter output."
@@ -461,9 +491,9 @@ def _source_note(raw: RawArtifact) -> str:
 def _market_warnings(index_items: list[Observation], sector_items: list[Observation], featured_items: list[Observation], global_items: list[Observation]) -> list[str]:
     warnings = ["collector output; review before publication"]
     if any(obs.source_id.startswith("src-naver") for obs in index_items):
-        warnings.append("Naver snapshots are prototype_only and redistribution restricted")
+        warnings.append("Naver snapshots provide intraday/latest context but are prototype_only and redistribution restricted")
     if any(obs.source_id.startswith("src-krx") for obs in index_items):
-        warnings.append("KRX official API values require terms and redistribution review")
+        warnings.append("KRX official API values may lag intraday and require terms and redistribution review")
     if featured_items:
         warnings.append("Naver featured stock snapshots are internal-use parsing aids")
     if sector_items:
