@@ -90,6 +90,7 @@ class KrxIndexAdapter:
         observations: list[Observation] = []
         market_hint = str(raw.metadata.get("market") or "INDEX").upper()
         primary_rows = _primary_rows(rows, market_hint)
+        primary_names = {str(row.get("IDX_NM") or row.get("name") or "") for row in primary_rows}
         for idx, row in enumerate(primary_rows, start=1):
             snapshot = _snapshot_from_row(row, market_hint, raw.source_id, idx)
             if snapshot["last"] == 0:
@@ -102,6 +103,22 @@ class KrxIndexAdapter:
                     value=snapshot,
                     unit="index_point",
                     as_of=str(snapshot["as_of"]),
+                    quality_flags=["krx_terms_review_required"],
+                    rights_class=raw.rights_class,
+                )
+            )
+        for idx, row in enumerate(_sector_rows(rows, primary_names), start=1):
+            ranking = _sector_ranking_from_row(row, market_hint, raw.source_id, idx)
+            if ranking["last"] == 0:
+                continue
+            observations.append(
+                Observation(
+                    observation_id=str(ranking["evidence_id"]),
+                    source_id=raw.source_id,
+                    field_name="sector_ranking",
+                    value=ranking,
+                    unit="index_point",
+                    as_of=str(ranking["as_of"]),
                     quality_flags=["krx_terms_review_required"],
                     rights_class=raw.rights_class,
                 )
@@ -160,6 +177,32 @@ def _primary_rows(rows: list[dict[str, Any]], market_hint: str) -> list[dict[str
         return exact[:1]
     nonzero = [row for row in rows if _number(row.get("CLSPRC_IDX") or row.get("close") or row.get("last")) != 0]
     return nonzero[:1]
+
+
+def _sector_rows(rows: list[dict[str, Any]], primary_names: set[str]) -> list[dict[str, Any]]:
+    primary_upper = {name.upper() for name in primary_names if name}
+    result = []
+    for row in rows:
+        name = str(row.get("IDX_NM") or row.get("name") or "")
+        if not name or name.upper() in primary_upper or "외국주포함" in name:
+            continue
+        if _number(row.get("CLSPRC_IDX") or row.get("close") or row.get("last")) == 0:
+            continue
+        result.append(row)
+    return result
+
+
+def _sector_ranking_from_row(row: dict[str, Any], market_hint: str, source_id: str, index: int) -> dict[str, Any]:
+    snapshot = _snapshot_from_row(row, market_hint, source_id, index)
+    return {
+        "evidence_id": f"krx-sector-{market_hint.lower()}-{index}-{snapshot['as_of'][:10]}",
+        "market": market_hint.upper(),
+        "sector": str(snapshot["name"]),
+        "last": snapshot["last"],
+        "change": snapshot["change"],
+        "change_pct": snapshot["change_pct"],
+        "as_of": snapshot["as_of"],
+    }
 
 
 def _snapshot_from_row(row: dict[str, Any], market_hint: str, source_id: str, index: int) -> dict[str, Any]:

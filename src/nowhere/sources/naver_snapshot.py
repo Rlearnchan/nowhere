@@ -63,6 +63,66 @@ class NaverSnapshotAdapter:
         return SourceHealth("naver_finance_snapshot", "review_needed", "prototype adapter requires fixture or explicit url")
 
 
+
+
+class NaverStockSnapshotAdapter:
+    source_name = "naver_stock_snapshot"
+    rights_class = "public_web_restricted"
+    api_base = "https://m.stock.naver.com/api/stock"
+
+    def __init__(self, ticker: str | None = None, fixture_path: Path | None = None) -> None:
+        self.ticker = _normalize_ticker(ticker or "")
+        self.fixture_path = fixture_path
+
+    def fetch(self, request: SourceRequest) -> RawArtifact:
+        ticker = _normalize_ticker(str(request.params.get("ticker") or self.ticker))
+        if self.fixture_path:
+            payload = self.fixture_path.read_text(encoding="utf-8")
+            raw_path = self.fixture_path
+        else:
+            if not ticker:
+                raise RuntimeError("Naver stock snapshot requires a ticker")
+            req = urlrequest.Request(
+                f"{self.api_base}/{ticker}/basic",
+                headers={"User-Agent": "nowhere-internal-snapshot/0.1"},
+            )
+            with urlrequest.urlopen(req, timeout=20) as response:
+                payload = response.read().decode("utf-8", errors="replace")
+            raw_path = None
+        return RawArtifact(
+            source_id=request.source_id,
+            captured_at=datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            payload=payload,
+            content_type="application/json",
+            rights_class=self.rights_class,
+            raw_path=raw_path,
+            metadata={"adapter": self.source_name, "prototype_only": True, "redistribution_warning": True, "ticker": ticker},
+        )
+
+    def normalize(self, raw: RawArtifact) -> list[Observation]:
+        payload = json.loads(raw.payload)
+        item = _stock_snapshot_from_payload(payload, raw)
+        return [
+            Observation(
+                observation_id=item["evidence_id"],
+                source_id=raw.source_id,
+                field_name="featured_stock_snapshot",
+                value=item,
+                unit="krw",
+                as_of=item["as_of"],
+                quality_flags=["prototype_only", "redistribution_restricted"],
+                rights_class=raw.rights_class,
+            )
+        ]
+
+    def healthcheck(self) -> SourceHealth:
+        if self.fixture_path and self.fixture_path.exists():
+            return SourceHealth(self.source_name, "ok", "fixture mode")
+        if self.ticker:
+            return SourceHealth(self.source_name, "review_needed", "live prototype mode")
+        return SourceHealth(self.source_name, "review_needed", "ticker required")
+
+
 class _ScriptJsonParser(HTMLParser):
     def __init__(self) -> None:
         super().__init__()
@@ -117,3 +177,50 @@ def _find_snapshot_dict(value: object) -> dict[str, object] | None:
             if found is not None:
                 return found
     return None
+
+
+def _stock_snapshot_from_payload(payload: dict[str, object], raw: RawArtifact) -> dict[str, object]:
+    ticker = _normalize_ticker(str(payload.get("itemCode") or payload.get("reutersCode") or raw.metadata.get("ticker") or ""))
+    name = str(payload.get("stockName") or ticker)
+    as_of = str(payload.get("localTradedAt") or raw.captured_at)
+    return {
+        "evidence_id": f"naver-stock-{ticker}-{as_of[:10]}",
+        "ticker": ticker,
+        "name": name,
+        "market": _market_from_payload(payload),
+        "last": _number(payload.get("closePriceRaw") or payload.get("closePrice")),
+        "change": _number(payload.get("compareToPreviousClosePriceRaw") or payload.get("compareToPreviousClosePrice")),
+        "change_pct": _number(payload.get("fluctuationsRatio")),
+        "volume": _int_number(payload.get("accumulatedTradingVolumeRaw") or payload.get("accumulatedTradingVolume")),
+        "trading_value_krw": _int_number(payload.get("accumulatedTradingValueRaw") or payload.get("accumulatedTradingValue")),
+        "market_cap_krw": _int_number(payload.get("marketValueRaw") or payload.get("marketValue")),
+        "market_status": str(payload.get("marketStatus") or ""),
+        "as_of": as_of,
+    }
+
+
+def _market_from_payload(payload: dict[str, object]) -> str:
+    exchange = payload.get("stockExchangeType")
+    if isinstance(exchange, dict):
+        return str(exchange.get("name") or exchange.get("nameEng") or exchange.get("nameKor") or payload.get("stockExchangeName") or "")
+    return str(payload.get("stockExchangeName") or "")
+
+
+def _normalize_ticker(value: str) -> str:
+    digits = "".join(ch for ch in value if ch.isdigit())
+    return digits.zfill(6) if digits else ""
+
+
+def _int_number(value: object) -> int | None:
+    if value is None or value == "" or value == "N/A":
+        return None
+    try:
+        return int(float(str(value).replace(",", "")))
+    except ValueError:
+        return None
+
+
+def _number(value: object) -> float:
+    if value is None or value == "" or value == "N/A":
+        return 0.0
+    return float(str(value).replace(",", ""))

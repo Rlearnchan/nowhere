@@ -331,6 +331,34 @@ def build_chart_payloads(market: dict[str, Any], news: dict[str, Any]) -> dict[s
         }
         for event in news.get("events", [])
     ]
+    sector_rows = [
+        {
+            "rank_group": group,
+            "market": item["market"],
+            "sector": item["sector"],
+            "change_pct": item["change_pct"],
+            "last": item["last"],
+            "as_of": item["as_of"],
+            "source_id": item["source_id"],
+            "evidence_id": item["evidence_id"],
+        }
+        for group, rows in market.get("sector_rankings", {}).items()
+        for item in rows
+    ]
+    featured_rows = [
+        {
+            "ticker": item["ticker"],
+            "name": item["name"],
+            "market": item["market"],
+            "last": item["last"],
+            "change_pct": item["change_pct"],
+            "trading_value_krw": item.get("trading_value_krw"),
+            "as_of": item["as_of"],
+            "source_id": item["source_id"],
+            "evidence_id": item["evidence_id"],
+        }
+        for item in market.get("featured_stocks", [])
+    ]
 
     datawrapper = {
         "schema_version": "nowhere.datawrapper_specs.v1",
@@ -362,6 +390,24 @@ def build_chart_payloads(market: dict[str, Any], news: dict[str, Any]) -> dict[s
                 "table": {"columns": ["market", "participant", "net_value_krw_100m", "as_of", "source_id", "evidence_id"], "rows": flow_rows},
                 "visualize": {"label_column": "participant", "value_column": "net_value_krw_100m", "split_column": "market"},
                 "metadata": metadata([row["source_id"] for row in flow_rows], [row["evidence_id"] for row in flow_rows]),
+            },
+            {
+                "chart_id": "sector-temperature",
+                "tool": "datawrapper",
+                "chart_type": "d3-bars",
+                "title": "Sector temperature top/bottom",
+                "table": {"columns": ["rank_group", "market", "sector", "change_pct", "last", "as_of", "source_id", "evidence_id"], "rows": sector_rows},
+                "visualize": {"label_column": "sector", "value_column": "change_pct", "split_column": "rank_group"},
+                "metadata": metadata([row["source_id"] for row in sector_rows], [row["evidence_id"] for row in sector_rows]),
+            },
+            {
+                "chart_id": "featured-stocks",
+                "tool": "datawrapper",
+                "chart_type": "tables",
+                "title": "News-linked featured stocks",
+                "table": {"columns": ["ticker", "name", "market", "last", "change_pct", "trading_value_krw", "as_of", "source_id", "evidence_id"], "rows": featured_rows},
+                "visualize": {"sort_column": "change_pct"},
+                "metadata": metadata([row["source_id"] for row in featured_rows], [row["evidence_id"] for row in featured_rows]),
             },
             {
                 "chart_id": "afternoon-catalysts",
@@ -589,6 +635,15 @@ def render_html_brief(packs: dict[str, Any], qa_report: dict[str, Any]) -> str:
         f"<tr><td>{escape(item['symbol'])}</td><td>{item['value']:,.2f}</td><td>{item.get('change_pct', 0):+.2f}%</td><td>{escape(item.get('window_start', ''))}</td><td>{escape(item.get('window_end', item['as_of']))}</td></tr>"
         for item in market.get("global_context", [])
     )
+    featured_rows_html = "\n".join(
+        f"<tr><td>{escape(item['name'])}</td><td>{escape(item['ticker'])}</td><td>{item['last']:,.0f}</td><td class='{'up' if item['change_pct'] >= 0 else 'down'}'>{item['change_pct']:+.2f}%</td><td>{_format_optional_krw(item.get('trading_value_krw'))}</td><td>{escape(item['as_of'])}</td></tr>"
+        for item in market.get("featured_stocks", [])
+    )
+    sector_rows_html = "\n".join(
+        f"<tr><td>{'상위' if group == 'top' else '하위'}</td><td>{escape(item['market'])}</td><td>{escape(item['sector'])}</td><td class='{'up' if item['change_pct'] >= 0 else 'down'}'>{item['change_pct']:+.2f}%</td><td>{escape(item['as_of'])}</td></tr>"
+        for group, rows in market.get("sector_rankings", {}).items()
+        for item in rows
+    )
     summary = "\n".join(f"<li>{escape(item)}</li>" for item in editorial.get("summary_bullets", []))
     news_items = "\n".join(
         f"<li><strong>{escape(item['headline'])}</strong><br>{escape(item['market_connection'])}</li>"
@@ -715,6 +770,12 @@ def render_html_brief(packs: dict[str, Any], qa_report: dict[str, Any]) -> str:
   <table><thead><tr><th>Market</th><th>Participant</th><th>Net KRW 100m</th><th>Source</th></tr></thead><tbody>{flow_rows}</tbody></table>
   <table><thead><tr><th>Global</th><th>Latest</th><th>Window change</th><th>Start</th><th>End</th></tr></thead><tbody>{global_rows}</tbody></table>
 
+  <h2>특징주</h2>
+  <table><thead><tr><th>종목</th><th>코드</th><th>현재가</th><th>등락률</th><th>거래대금</th><th>기준시각</th></tr></thead><tbody>{featured_rows_html}</tbody></table>
+
+  <h2>업종 온도계</h2>
+  <table><thead><tr><th>구분</th><th>시장</th><th>업종/지수</th><th>등락률</th><th>기준시각</th></tr></thead><tbody>{sector_rows_html}</tbody></table>
+
   <h2>News And Catalysts</h2>
   <ul>{news_items}</ul>
 
@@ -837,6 +898,15 @@ def render_lightweight_bootstrap_js() -> str:
   loadDatawrapperResult();
 })();
 """
+
+
+def _format_optional_krw(value: Any) -> str:
+    if value is None:
+        return ""
+    try:
+        return f"{int(value):,}"
+    except (TypeError, ValueError):
+        return str(value)
 
 
 def _render_story(story: dict[str, Any]) -> str:

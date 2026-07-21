@@ -174,6 +174,35 @@
       "items": {
         "$ref": "#/$defs/source"
       }
+    },
+    "sector_rankings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "top",
+        "bottom"
+      ],
+      "properties": {
+        "top": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/sectorRanking"
+          }
+        },
+        "bottom": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/sectorRanking"
+          }
+        }
+      }
+    },
+    "featured_stocks": {
+      "type": "array",
+      "maxItems": 8,
+      "items": {
+        "$ref": "#/$defs/featuredStock"
+      }
     }
   },
   "$defs": {
@@ -457,6 +486,134 @@
           "minimum": 1
         },
         "note": {
+          "type": "string"
+        },
+        "rights_class": {
+          "type": "string"
+        },
+        "quality_flags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "sectorRanking": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence_id",
+        "market",
+        "sector",
+        "last",
+        "change",
+        "change_pct",
+        "as_of",
+        "source_id"
+      ],
+      "properties": {
+        "evidence_id": {
+          "type": "string"
+        },
+        "market": {
+          "type": "string"
+        },
+        "sector": {
+          "type": "string"
+        },
+        "last": {
+          "type": "number"
+        },
+        "change": {
+          "type": "number"
+        },
+        "change_pct": {
+          "type": "number"
+        },
+        "as_of": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "source_id": {
+          "type": "string"
+        },
+        "rights_class": {
+          "type": "string"
+        },
+        "quality_flags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "featuredStock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence_id",
+        "ticker",
+        "name",
+        "market",
+        "last",
+        "change",
+        "change_pct",
+        "as_of",
+        "source_id"
+      ],
+      "properties": {
+        "evidence_id": {
+          "type": "string"
+        },
+        "ticker": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "market": {
+          "type": "string"
+        },
+        "last": {
+          "type": "number"
+        },
+        "change": {
+          "type": "number"
+        },
+        "change_pct": {
+          "type": "number"
+        },
+        "volume": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "trading_value_krw": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "market_cap_krw": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "market_status": {
+          "type": "string"
+        },
+        "as_of": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "source_id": {
           "type": "string"
         },
         "rights_class": {

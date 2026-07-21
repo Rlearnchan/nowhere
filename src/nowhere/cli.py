@@ -203,6 +203,10 @@ def build_parser() -> argparse.ArgumentParser:
     collect.add_argument("--krx-bas-dd", default=None, help="KRX base date in YYYYMMDD; omit to auto-search recent Korean weekdays")
     collect.add_argument("--krx-market", action="append", default=None, help="KRX market to fetch, e.g. KOSPI or KOSDAQ")
     collect.add_argument("--krx-lookback-days", type=int, default=10, help="Recent weekday search window when --krx-bas-dd is omitted")
+    collect.add_argument("--live-featured-stocks", action="store_true", help="Fetch Naver stock snapshots for tickers discovered from jibi news")
+    collect.add_argument("--featured-stock-ticker", action="append", default=None, help="Explicit featured stock ticker to snapshot via Naver")
+    collect.add_argument("--naver-stock", type=Path, action="append", default=None, help="Naver stock snapshot fixture JSON")
+    collect.add_argument("--featured-stock-limit", type=int, default=5, help="Maximum featured stock snapshots to collect")
     return parser
 
 
@@ -303,6 +307,10 @@ def main(argv: list[str] | None = None) -> int:
             krx_bas_dd=args.krx_bas_dd,
             krx_markets=args.krx_market,
             krx_lookback_days=args.krx_lookback_days,
+            live_featured_stocks=args.live_featured_stocks,
+            featured_stock_tickers=args.featured_stock_ticker,
+            naver_stock_paths=args.naver_stock,
+            featured_stock_limit=args.featured_stock_limit,
         )
         print(out_dir)
         return 0

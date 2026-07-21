@@ -10,7 +10,7 @@ from .contracts import load_json, validate_contract
 from .sources.base import Observation, RawArtifact, SourceRequest
 from .sources.jibi import JibiJsonlAdapter
 from .sources.krx_adapter import KrxIndexAdapter
-from .sources.naver_snapshot import NaverSnapshotAdapter
+from .sources.naver_snapshot import NaverSnapshotAdapter, NaverStockSnapshotAdapter
 from .sources.yfinance_adapter import YFinanceAdapter
 from .source_audit import audit_adapter_outputs
 
@@ -30,6 +30,10 @@ def collect_fixture_sources(
     krx_bas_dd: str | None = None,
     krx_markets: list[str] | None = None,
     krx_lookback_days: int = 10,
+    live_featured_stocks: bool = False,
+    featured_stock_tickers: list[str] | None = None,
+    naver_stock_paths: list[Path] | None = None,
+    featured_stock_limit: int = 5,
 ) -> Path:
     repo_root = repo_root.resolve()
     output_root = (output_root or repo_root / "runs").resolve()
@@ -78,6 +82,21 @@ def collect_fixture_sources(
         for idx, path in enumerate(naver_paths, start=1):
             adapter = NaverSnapshotAdapter(path.resolve())
             raw, obs = _run_adapter(adapter, SourceRequest(f"src-naver-fixture-{idx}"))
+            raw_artifacts.append(raw)
+            observations.extend(obs)
+
+
+    stock_tickers = _featured_stock_tickers(observations, featured_stock_tickers, featured_stock_limit)
+    if naver_stock_paths:
+        for idx, path in enumerate(naver_stock_paths[:featured_stock_limit], start=1):
+            adapter = NaverStockSnapshotAdapter(fixture_path=path.resolve())
+            raw, obs = _run_adapter(adapter, SourceRequest(f"src-naver-stock-fixture-{idx}"))
+            raw_artifacts.append(raw)
+            observations.extend(obs)
+    elif live_featured_stocks:
+        for ticker in stock_tickers:
+            adapter = NaverStockSnapshotAdapter(ticker=ticker)
+            raw, obs = _run_adapter(adapter, SourceRequest(f"src-naver-stock-{ticker}", {"ticker": ticker}))
             raw_artifacts.append(raw)
             observations.extend(obs)
 
@@ -145,6 +164,8 @@ def collect_fixture_sources(
 
 def build_market_pack_from_observations(run_id: str, observations: list[Observation], raw_artifacts: list[RawArtifact]) -> dict[str, Any]:
     index_items = [obs for obs in observations if obs.field_name == "index_snapshot"]
+    sector_items = [obs for obs in observations if obs.field_name == "sector_ranking"]
+    featured_items = [obs for obs in observations if obs.field_name == "featured_stock_snapshot"]
     global_items = [obs for obs in observations if obs.field_name == "global_price_latest"]
     market_as_of = max((obs.as_of for obs in index_items), default=_utc_now())
     trade_date = market_as_of[:10]
@@ -156,13 +177,15 @@ def build_market_pack_from_observations(run_id: str, observations: list[Observat
             "generated_at": _utc_now(),
             "market_as_of": market_as_of,
             "quality_status": "review_needed",
-            "warnings": _market_warnings(index_items, global_items),
+            "warnings": _market_warnings(index_items, sector_items, featured_items, global_items),
         },
         "indices": [_index_from_observation(obs) for obs in index_items],
         "breadth": [],
         "flows": [],
         "fx": [],
         "global_context": [_global_from_observation(obs) for obs in global_items],
+        "sector_rankings": _sector_rankings_from_observations(sector_items),
+        "featured_stocks": [_featured_stock_from_observation(obs) for obs in featured_items],
         "movers": [],
         "observations": [
             {
@@ -216,6 +239,27 @@ def build_news_pack_from_observations(run_id: str, observations: list[Observatio
     }
 
 
+def _featured_stock_tickers(observations: list[Observation], explicit: list[str] | None, limit: int) -> list[str]:
+    tickers: list[str] = []
+    for value in explicit or []:
+        tickers.append(_normalize_ticker(value))
+    for obs in observations:
+        if obs.field_name != "news_event" or not isinstance(obs.value, dict):
+            continue
+        for value in obs.value.get("tickers", []) if isinstance(obs.value.get("tickers"), list) else []:
+            tickers.append(_normalize_ticker(str(value)))
+    result = []
+    for ticker in tickers:
+        if ticker and ticker not in result:
+            result.append(ticker)
+    return result[:limit]
+
+
+def _normalize_ticker(value: str) -> str:
+    digits = "".join(ch for ch in value if ch.isdigit())
+    return digits.zfill(6) if digits else ""
+
+
 def _run_adapter(adapter: Any, request: SourceRequest) -> tuple[RawArtifact, list[Observation]]:
     raw = adapter.fetch(request)
     return raw, adapter.normalize(raw)
@@ -243,6 +287,49 @@ def _index_from_observation(obs: Observation) -> dict[str, Any]:
         "redistribution_allowed": obs.rights_class != "public_web_restricted" and "redistribution_restricted" not in obs.quality_flags,
         "quality_flags": obs.quality_flags,
     }
+
+
+def _sector_rankings_from_observations(items: list[Observation]) -> dict[str, list[dict[str, Any]]]:
+    rows = [_sector_ranking_from_observation(obs) for obs in items]
+    ranked = sorted(rows, key=lambda item: item["change_pct"], reverse=True)
+    return {"top": ranked[:5], "bottom": list(reversed(ranked[-5:])) if ranked else []}
+
+
+def _sector_ranking_from_observation(obs: Observation) -> dict[str, Any]:
+    value = obs.value if isinstance(obs.value, dict) else {}
+    return {
+        "evidence_id": str(value.get("evidence_id", obs.observation_id)),
+        "market": str(value.get("market", "")),
+        "sector": str(value.get("sector", "")),
+        "last": float(value.get("last", 0)),
+        "change": float(value.get("change", 0)),
+        "change_pct": float(value.get("change_pct", 0)),
+        "as_of": obs.as_of,
+        "source_id": obs.source_id,
+        "rights_class": obs.rights_class,
+        "quality_flags": obs.quality_flags,
+    }
+
+
+def _featured_stock_from_observation(obs: Observation) -> dict[str, Any]:
+    value = obs.value if isinstance(obs.value, dict) else {}
+    result = {
+        "evidence_id": str(value.get("evidence_id", obs.observation_id)),
+        "ticker": str(value.get("ticker", "")),
+        "name": str(value.get("name", "")),
+        "market": str(value.get("market", "")),
+        "last": float(value.get("last", 0)),
+        "change": float(value.get("change", 0)),
+        "change_pct": float(value.get("change_pct", 0)),
+        "as_of": obs.as_of,
+        "source_id": obs.source_id,
+        "rights_class": obs.rights_class,
+        "quality_flags": obs.quality_flags,
+    }
+    for key in ("volume", "trading_value_krw", "market_cap_krw", "market_status"):
+        if value.get(key) is not None:
+            result[key] = value[key]
+    return result
 
 
 def _global_from_observation(obs: Observation) -> dict[str, Any]:
@@ -332,6 +419,8 @@ def _source_role(raw: RawArtifact) -> str:
         return "korea_market_index"
     if adapter == "naver_finance_snapshot":
         return "prototype_market_index"
+    if adapter == "naver_stock_snapshot":
+        return "featured_stock_snapshot"
     return "supporting_data"
 
 
@@ -345,6 +434,8 @@ def _public_source_note(raw: RawArtifact) -> str:
         return "Licensed news input normalized through jibi."
     if adapter == "naver_finance_snapshot":
         return "Prototype fallback snapshot; not for public redistribution."
+    if adapter == "naver_stock_snapshot":
+        return "Internal-use Naver stock snapshot for news-linked featured stocks."
     return "Collected source adapter output."
 
 
@@ -367,12 +458,16 @@ def _source_note(raw: RawArtifact) -> str:
     return ", ".join(flags) if flags else "fixture adapter output"
 
 
-def _market_warnings(index_items: list[Observation], global_items: list[Observation]) -> list[str]:
+def _market_warnings(index_items: list[Observation], sector_items: list[Observation], featured_items: list[Observation], global_items: list[Observation]) -> list[str]:
     warnings = ["collector output; review before publication"]
     if any(obs.source_id.startswith("src-naver") for obs in index_items):
         warnings.append("Naver snapshots are prototype_only and redistribution restricted")
     if any(obs.source_id.startswith("src-krx") for obs in index_items):
         warnings.append("KRX official API values require terms and redistribution review")
+    if featured_items:
+        warnings.append("Naver featured stock snapshots are internal-use parsing aids")
+    if sector_items:
+        warnings.append("KRX sector rankings are derived from detailed index rows")
     if global_items:
         warnings.append("yfinance values require Yahoo terms review")
     if any("market_data_stale" in obs.quality_flags for obs in global_items):

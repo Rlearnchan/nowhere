@@ -20,7 +20,7 @@ from nowhere.execution_status import summarize_execution_status
 from nowhere.sources.base import RawArtifact, SourceRequest
 from nowhere.sources.jibi import JibiInputAdapter, JibiJsonlAdapter
 from nowhere.sources.krx_adapter import KrxIndexAdapter
-from nowhere.sources.naver_snapshot import NaverSnapshotAdapter
+from nowhere.sources.naver_snapshot import NaverSnapshotAdapter, NaverStockSnapshotAdapter
 from nowhere.sources.yfinance_adapter import YFinanceAdapter
 from nowhere.source_audit import audit_adapter_outputs
 
@@ -308,6 +308,13 @@ def test_source_adapters_normalize_fixture_inputs() -> None:
     naver_html_obs = naver_html.normalize(naver_html.fetch(SourceRequest(source_id="src-naver-html")))
     assert naver_html_obs[0].observation_id == "mkt-kospi-html-fixture"
 
+    naver_stock = NaverStockSnapshotAdapter(fixture_path=root / "fixtures/naver/stock_005930_basic.json")
+    naver_stock_obs = naver_stock.normalize(naver_stock.fetch(SourceRequest(source_id="src-naver-stock-005930")))
+    assert naver_stock_obs[0].field_name == "featured_stock_snapshot"
+    assert naver_stock_obs[0].value["ticker"] == "005930"
+    assert naver_stock_obs[0].value["name"] == "삼성전자"
+    assert naver_stock_obs[0].value["trading_value_krw"] == 2938052000000
+
     krx = KrxIndexAdapter(root / "fixtures/krx/kospi_index.json", market="KOSPI")
     krx_raw = krx.fetch(SourceRequest(source_id="src-krx-kospi", params={"market": "KOSPI"}))
     krx_obs = krx.normalize(krx_raw)
@@ -375,6 +382,56 @@ def test_yfinance_adapter_flags_stale_global_context() -> None:
 
     assert "market_data_stale" in obs[0].quality_flags
     assert obs[0].value["freshness_age_hours"] > 24
+
+
+def test_krx_adapter_emits_sector_rankings_from_detailed_rows() -> None:
+    payload = json.dumps({
+        "OutBlock_1": [
+            {"BAS_DD": "20260721", "IDX_CLSS": "KOSPI", "IDX_NM": "코스피", "CLSPRC_IDX": "3000", "CMPPREVDD_IDX": "10", "FLUC_RT": "0.33", "OPNPRC_IDX": "2990", "HGPRC_IDX": "3010", "LWPRC_IDX": "2980"},
+            {"BAS_DD": "20260721", "IDX_CLSS": "KOSPI", "IDX_NM": "코스피 전기전자", "CLSPRC_IDX": "5100", "CMPPREVDD_IDX": "150", "FLUC_RT": "3.03", "OPNPRC_IDX": "4950", "HGPRC_IDX": "5120", "LWPRC_IDX": "4930"},
+            {"BAS_DD": "20260721", "IDX_CLSS": "KOSPI", "IDX_NM": "코스피 건설", "CLSPRC_IDX": "850", "CMPPREVDD_IDX": "-20", "FLUC_RT": "-2.30", "OPNPRC_IDX": "870", "HGPRC_IDX": "875", "LWPRC_IDX": "842"},
+        ]
+    })
+    raw = RawArtifact(
+        source_id="src-krx-kospi",
+        captured_at="2026-07-21T03:00:00+00:00",
+        payload=payload,
+        content_type="application/json",
+        rights_class="public_official",
+        metadata={"adapter": "krx_openapi", "market": "KOSPI"},
+    )
+
+    observations = KrxIndexAdapter(market="KOSPI").normalize(raw)
+
+    assert [obs.field_name for obs in observations].count("index_snapshot") == 1
+    sectors = [obs for obs in observations if obs.field_name == "sector_ranking"]
+    assert len(sectors) == 2
+    assert sectors[0].value["sector"] == "코스피 전기전자"
+
+
+def test_collected_market_pack_includes_featured_stocks_and_sector_rankings(tmp_path: Path) -> None:
+    root = Path(__file__).resolve().parents[1]
+    adapter_dir = collect_fixture_sources(
+        root,
+        "featured-sector-source",
+        output_root=tmp_path,
+        jibi_path=root / "fixtures/jibi/sample_events.json",
+        naver_stock_paths=[root / "fixtures/naver/stock_005930_basic.json"],
+    )
+    market = load_json(adapter_dir / "market_pack.json")
+    schema = load_json(root / "contracts/market_pack.schema.json")
+
+    assert validate_contract(market, schema) == []
+    assert market["featured_stocks"][0]["ticker"] == "005930"
+    assert market["featured_stocks"][0]["name"] == "삼성전자"
+
+    result = build_collected_bundle(root, adapter_dir, run_id="featured-sector-brief", output_root=tmp_path, render_pdf=False)
+    html = result.html_path.read_text(encoding="utf-8")
+    datawrapper = load_json(result.run_dir / "charts/datawrapper_specs.json")
+
+    assert "특징주" in html
+    assert "업종 온도계" in html
+    assert any(chart["chart_id"] == "featured-stocks" for chart in datawrapper["charts"])
 
 
 def test_datawrapper_plan_exports_csv_preview(tmp_path: Path) -> None:
