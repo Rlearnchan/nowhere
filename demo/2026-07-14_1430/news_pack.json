@@ -1,0 +1,124 @@
+{
+  "schema_version": "news_pack.v1",
+  "run_id": "20260714-1430-demo",
+  "news_cutoff": "2026-07-14T14:45:00+09:00",
+  "events": [
+    {
+      "event_id": "evt-kosdaq-sidecar",
+      "first_seen_at": "2026-07-14T12:06:00+09:00",
+      "title": "코스닥 매도 사이드카 발동",
+      "category": "market_structure",
+      "entities": ["한국거래소", "KOSDAQ150"],
+      "tickers": [],
+      "facts": [
+        {"fact_id":"fact-sidecar-time","text":"12시 6분 코스닥시장 매도 사이드카가 발동됐다.","source_ids":["src-infomax-sidecar"]},
+        {"fact_id":"fact-sidecar-threshold","text":"발동 시 코스닥150선물은 6.08%, 코스닥150지수는 6.25% 하락했다.","source_ids":["src-infomax-sidecar"]},
+        {"fact_id":"fact-sidecar-count","text":"2026년 코스닥 사이드카는 20번째로 2008년 연간 기록 19회를 넘어섰다.","source_ids":["src-infomax-sidecar"]}
+      ],
+      "reported_claims": ["시가총액 상위 종목 급락이 코스닥 변동성을 키웠다는 보도"],
+      "sources": ["src-infomax-sidecar"],
+      "market_links": ["mkt-kosdaq-1430", "breadth-kosdaq-1430", "flow-kosdaq-program"],
+      "status": "confirmed",
+      "significance_hint": 0.95,
+      "open_questions": ["오후 회복이 시장 폭 개선으로 이어지는가"]
+    },
+    {
+      "event_id": "evt-hynix-estimate",
+      "first_seen_at": "2026-07-14T08:56:00+09:00",
+      "title": "SK하이닉스 단기 실적 기대치 하향, 메모리 비중확대 의견 유지",
+      "category": "earnings_expectation",
+      "entities": ["SK하이닉스", "한국투자증권"],
+      "tickers": ["000660"],
+      "facts": [
+        {"fact_id":"fact-hynix-op","text":"한국투자증권은 SK하이닉스 2분기 영업이익을 60조4천억원으로 전망해 컨센서스 65조원을 8% 하회할 것으로 봤다.","source_ids":["src-infomax-hynix"]},
+        {"fact_id":"fact-hynix-long","text":"HBM 구조적 공급 제약과 장기공급계약을 근거로 메모리 매수·비중확대 의견은 유지했다.","source_ids":["src-infomax-hynix"]}
+      ],
+      "reported_claims": ["최근 변동성은 매크로와 AI 인프라 투자 지속성 우려를 반영한다는 분석"],
+      "sources": ["src-infomax-hynix"],
+      "market_links": ["mover-000660", "global-sox-prev"],
+      "status": "confirmed",
+      "significance_hint": 0.90,
+      "open_questions": ["단기 기대치 하향이 업황 둔화인지 초고마진 정상화인지"]
+    },
+    {
+      "event_id": "evt-asml-preview",
+      "first_seen_at": "2026-07-14T08:34:00+09:00",
+      "title": "ASML 실적은 메모리 주문 강도와 경영진 표현이 핵심",
+      "category": "earnings_catalyst",
+      "entities": ["ASML", "삼성전자", "SK하이닉스"],
+      "tickers": ["ASML", "005930", "000660"],
+      "facts": [
+        {"fact_id":"fact-asml-time","text":"ASML은 7월 15일 오후 2시 KST에 2분기 실적을 발표한다.","source_ids":["src-infomax-asml"]},
+        {"fact_id":"fact-asml-focus","text":"시장 관심은 현재 매출보다 메모리 고객사의 주문 강도와 CEO의 투자 기조 설명에 집중돼 있다.","source_ids":["src-infomax-asml"]}
+      ],
+      "reported_claims": ["주문·발언이 AI 메모리 업사이클의 2027년 연장 가능성을 가늠할 선행 신호라는 해석"],
+      "sources": ["src-infomax-asml"],
+      "market_links": ["mkt-kospi-1430", "mover-005930", "mover-000660"],
+      "status": "confirmed",
+      "significance_hint": 0.88,
+      "open_questions": ["메모리 고객사의 투자 일정이 앞당겨지는가 늦춰지는가"]
+    },
+    {
+      "event_id": "evt-leverage-etf-policy",
+      "first_seen_at": "2026-07-14T08:26:00+09:00",
+      "title": "단일종목 레버리지 ETF 대응 회의, 변동성 증폭 논쟁",
+      "category": "policy_market_structure",
+      "entities": ["금융투자협회", "증권사", "금융위원회"],
+      "tickers": [],
+      "facts": [
+        {"fact_id":"fact-etf-meeting","text":"금융투자협회장은 14일 오후 3시 주요 증권사 CEO를 소집한다.","source_ids":["src-infomax-etf-policy"]},
+        {"fact_id":"fact-etf-amplifier","text":"별도 계량분석은 레버리지 ETF 리밸런싱이 장 후반 변동성을 키울 수 있지만 오전 변동성의 근본 원인으로 보기는 어렵다고 평가했다.","source_ids":["src-infomax-etf-analysis"]}
+      ],
+      "reported_claims": ["레버리지 ETF는 원인보다 증폭기에 가깝다는 분석"],
+      "sources": ["src-infomax-etf-policy", "src-infomax-etf-analysis"],
+      "market_links": ["mkt-kospi-1430", "mkt-kosdaq-1430"],
+      "status": "confirmed",
+      "significance_hint": 0.86,
+      "open_questions": ["장 후반 리밸런싱 수요가 종가 변동성을 다시 높이는가"]
+    },
+    {
+      "event_id": "evt-tsmc-revenue",
+      "first_seen_at": "2026-07-13T14:59:00+09:00",
+      "title": "TSMC 6월 매출 전년 대비 67.9% 증가",
+      "category": "semiconductor_demand",
+      "entities": ["TSMC"],
+      "tickers": ["2330.TW"],
+      "facts": [
+        {"fact_id":"fact-tsmc-june","text":"TSMC의 6월 매출은 4천426억8천만 대만달러로 전년 대비 67.9%, 전월 대비 6.2% 증가했다.","source_ids":["src-infomax-tsmc"]},
+        {"fact_id":"fact-tsmc-earnings","text":"TSMC 2분기 실적은 7월 16일 발표 예정이다.","source_ids":["src-infomax-tsmc"]}
+      ],
+      "reported_claims": [],
+      "sources": ["src-infomax-tsmc"],
+      "market_links": ["global-sox-prev", "mover-005930", "mover-000660"],
+      "status": "confirmed",
+      "significance_hint": 0.75,
+      "open_questions": ["강한 파운드리 매출이 한국 메모리 투자 강도와 같은 방향인가"]
+    },
+    {
+      "event_id": "evt-us-cpi",
+      "first_seen_at": "2026-07-14T00:00:00+09:00",
+      "title": "미국 6월 CPI 발표 예정",
+      "category": "macro_catalyst",
+      "entities": ["U.S. Bureau of Labor Statistics"],
+      "tickers": [],
+      "facts": [
+        {"fact_id":"fact-cpi-time","text":"미국 BLS는 7월 14일 08:30 ET에 6월 CPI를 발표한다. 한국시간으로 21:30이다.","source_ids":["src-bls-calendar"]}
+      ],
+      "reported_claims": [],
+      "sources": ["src-bls-calendar"],
+      "market_links": ["global-us10y-prev", "global-dxy-prev", "fx-usdkrw-1444"],
+      "status": "confirmed",
+      "significance_hint": 0.90,
+      "open_questions": ["물가 결과가 금리 인상 기대와 기술주 밸류에이션 압력을 완화하는가"]
+    }
+  ],
+  "sources": [
+    {"source_id":"src-infomax-sidecar","name":"연합인포맥스 - 코스닥 매도 사이드카","url":"https://news.einfomax.co.kr/news/articleView.html?idxno=4424881","published_at":"2026-07-14T14:16:00+09:00","rights_class":"public_web_restricted"},
+    {"source_id":"src-infomax-hynix","name":"연합인포맥스 - SK하이닉스 실적 전망","url":"https://news.einfomax.co.kr/news/articleView.html?idxno=4424790","published_at":"2026-07-14T08:56:00+09:00","rights_class":"public_web_restricted"},
+    {"source_id":"src-infomax-asml","name":"연합인포맥스 - ASML 실적 프리뷰","url":"https://news.einfomax.co.kr/news/articleView.html?idxno=4424769","published_at":"2026-07-14T08:34:00+09:00","rights_class":"public_web_restricted"},
+    {"source_id":"src-infomax-etf-policy","name":"연합인포맥스 - 레버리지 ETF 대응 회의","url":"https://news.einfomax.co.kr/news/articleView.html?idxno=4424765","published_at":"2026-07-14T08:26:00+09:00","rights_class":"public_web_restricted"},
+    {"source_id":"src-infomax-etf-analysis","name":"연합인포맥스 - 레버리지 ETF 변동성 분석","url":"https://news.einfomax.co.kr/news/articleView.html?idxno=4424754","published_at":"2026-07-14T07:55:00+09:00","rights_class":"public_web_restricted"},
+    {"source_id":"src-infomax-tsmc","name":"연합인포맥스 - TSMC 6월 매출","url":"https://news.einfomax.co.kr/news/articleView.html?idxno=4424679","published_at":"2026-07-13T14:59:00+09:00","rights_class":"public_web_restricted"},
+    {"source_id":"src-bls-calendar","name":"U.S. BLS July 2026 Release Calendar","url":"https://www.bls.gov/schedule/2026/07_sched.htm","published_at":"2026-02-18T00:00:00-05:00","rights_class":"public_official"}
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "evidence_id": "mkt-kosdaq-fixture",
+  "symbol": "KOSDAQ",
+  "name": "KOSDAQ fixture",
+  "last": 782.76,
+  "change": -16.60,
+  "change_pct": -2.08,
+  "prev_close": 799.36,
+  "open": 797.16,
+  "high": 802.53,
+  "low": 749.76,
+  "unit": "index",
+  "as_of": "2026-07-14T14:30:00+09:00"
+}

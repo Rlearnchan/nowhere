@@ -1,0 +1,401 @@
+{
+  "schema_version": "market_pack.v1",
+  "run": {
+    "run_id": "20260714-1430-demo",
+    "trade_date": "2026-07-14",
+    "generated_at": "2026-07-14T14:50:00+09:00",
+    "market_as_of": "2026-07-14T14:30:00+09:00",
+    "quality_status": "review_needed",
+    "warnings": [
+      "국내 장중 데이터는 Naver Finance 공개 snapshot을 사용한 prototype이다.",
+      "USD/KRW는 서울 현물환 체결가가 아니라 하나은행 고시환율 프록시다.",
+      "전일 글로벌 시장 값은 사용자 제공 신한투자증권 자료에서 전사한 값이다."
+    ]
+  },
+  "indices": [
+    {
+      "evidence_id": "mkt-kospi-1430",
+      "symbol": "KOSPI",
+      "name": "코스피",
+      "last": 6916.73,
+      "change": 109.8,
+      "change_pct": 1.61,
+      "prev_close": 6806.93,
+      "open": 6769.06,
+      "high": 6979.92,
+      "low": 6448.86,
+      "recovery_from_low_pct": 7.26,
+      "position_in_range_pct": 88.1,
+      "as_of": "2026-07-14T14:28:00+09:00",
+      "source_id": "src-naver-kospi"
+    },
+    {
+      "evidence_id": "mkt-kosdaq-1430",
+      "symbol": "KOSDAQ",
+      "name": "코스닥",
+      "last": 782.76,
+      "change": -16.6,
+      "change_pct": -2.08,
+      "prev_close": 799.36,
+      "open": 797.16,
+      "high": 802.53,
+      "low": 749.76,
+      "recovery_from_low_pct": 4.4,
+      "position_in_range_pct": 62.54,
+      "as_of": "2026-07-14T14:30:00+09:00",
+      "source_id": "src-naver-kosdaq"
+    }
+  ],
+  "breadth": [
+    {
+      "evidence_id": "breadth-kospi-1430",
+      "market": "KOSPI",
+      "advancers": 272,
+      "unchanged": 32,
+      "decliners": 608,
+      "advancer_ratio_ex_flat_pct": 30.91,
+      "as_of": "2026-07-14T14:28:00+09:00",
+      "source_id": "src-naver-kospi"
+    },
+    {
+      "evidence_id": "breadth-kosdaq-1430",
+      "market": "KOSDAQ",
+      "advancers": 409,
+      "unchanged": 76,
+      "decliners": 1254,
+      "advancer_ratio_ex_flat_pct": 24.59,
+      "as_of": "2026-07-14T14:30:00+09:00",
+      "source_id": "src-naver-kosdaq"
+    }
+  ],
+  "flows": [
+    {
+      "evidence_id": "flow-kospi-individual",
+      "market": "KOSPI",
+      "participant": "individual",
+      "net_value_krw_100m": -39808,
+      "as_of": "2026-07-14T14:28:00+09:00",
+      "source_id": "src-naver-kospi"
+    },
+    {
+      "evidence_id": "flow-kospi-foreign",
+      "market": "KOSPI",
+      "participant": "foreign",
+      "net_value_krw_100m": 4838,
+      "as_of": "2026-07-14T14:28:00+09:00",
+      "source_id": "src-naver-kospi"
+    },
+    {
+      "evidence_id": "flow-kospi-institution",
+      "market": "KOSPI",
+      "participant": "institution",
+      "net_value_krw_100m": 35242,
+      "as_of": "2026-07-14T14:28:00+09:00",
+      "source_id": "src-naver-kospi"
+    },
+    {
+      "evidence_id": "flow-kospi-program",
+      "market": "KOSPI",
+      "participant": "program_total",
+      "net_value_krw_100m": 9127,
+      "as_of": "2026-07-14T14:28:00+09:00",
+      "source_id": "src-naver-kospi"
+    },
+    {
+      "evidence_id": "flow-kospi-program-arb",
+      "market": "KOSPI",
+      "participant": "program_arbitrage",
+      "net_value_krw_100m": 5400,
+      "as_of": "2026-07-14T14:28:00+09:00",
+      "source_id": "src-naver-kospi"
+    },
+    {
+      "evidence_id": "flow-kospi-program-nonarb",
+      "market": "KOSPI",
+      "participant": "program_non_arbitrage",
+      "net_value_krw_100m": 3726,
+      "as_of": "2026-07-14T14:28:00+09:00",
+      "source_id": "src-naver-kospi"
+    },
+    {
+      "evidence_id": "flow-kosdaq-individual",
+      "market": "KOSDAQ",
+      "participant": "individual",
+      "net_value_krw_100m": 630,
+      "as_of": "2026-07-14T14:30:00+09:00",
+      "source_id": "src-naver-kosdaq"
+    },
+    {
+      "evidence_id": "flow-kosdaq-foreign",
+      "market": "KOSDAQ",
+      "participant": "foreign",
+      "net_value_krw_100m": -1772,
+      "as_of": "2026-07-14T14:30:00+09:00",
+      "source_id": "src-naver-kosdaq"
+    },
+    {
+      "evidence_id": "flow-kosdaq-institution",
+      "market": "KOSDAQ",
+      "participant": "institution",
+      "net_value_krw_100m": 1019,
+      "as_of": "2026-07-14T14:30:00+09:00",
+      "source_id": "src-naver-kosdaq"
+    },
+    {
+      "evidence_id": "flow-kosdaq-program",
+      "market": "KOSDAQ",
+      "participant": "program_total",
+      "net_value_krw_100m": -1278,
+      "as_of": "2026-07-14T14:30:00+09:00",
+      "source_id": "src-naver-kosdaq"
+    }
+  ],
+  "fx": [
+    {
+      "evidence_id": "fx-usdkrw-1444",
+      "symbol": "USDKRW_PROXY",
+      "name": "USD/KRW 하나은행 고시환율",
+      "value": 1490.9,
+      "change_pct": -0.57,
+      "unit": "KRW per USD",
+      "as_of": "2026-07-14T14:44:00+09:00",
+      "source_id": "src-naver-usdkrw",
+      "note": "서울외환시장 현물환 체결가가 아닌 은행 고시환율 프록시"
+    }
+  ],
+  "global_context": [
+    {
+      "evidence_id": "global-spx-prev",
+      "symbol": "SPX",
+      "name": "S&P 500 전일",
+      "value": 7515,
+      "change_pct": -0.8,
+      "unit": "index",
+      "as_of": "2026-07-13T16:00:00-04:00",
+      "source_id": "src-shinhan-digest"
+    },
+    {
+      "evidence_id": "global-nasdaq-prev",
+      "symbol": "NASDAQ",
+      "name": "NASDAQ 전일",
+      "value": 25873,
+      "change_pct": -1.6,
+      "unit": "index",
+      "as_of": "2026-07-13T16:00:00-04:00",
+      "source_id": "src-shinhan-digest"
+    },
+    {
+      "evidence_id": "global-sox-prev",
+      "symbol": "SOX",
+      "name": "Philadelphia Semiconductor 전일",
+      "value": 0,
+      "change_pct": -4.8,
+      "unit": "index",
+      "as_of": "2026-07-13T16:00:00-04:00",
+      "source_id": "src-shinhan-digest"
+    },
+    {
+      "evidence_id": "global-wti-prev",
+      "symbol": "WTI",
+      "name": "WTI 전일",
+      "value": 78.1,
+      "change_pct": 9.4,
+      "unit": "USD/bbl",
+      "as_of": "2026-07-13T16:00:00-04:00",
+      "source_id": "src-shinhan-digest"
+    },
+    {
+      "evidence_id": "global-dxy-prev",
+      "symbol": "DXY",
+      "name": "Dollar Index 전일",
+      "value": 101.24,
+      "change_pct": 0.3,
+      "unit": "index",
+      "as_of": "2026-07-13T16:00:00-04:00",
+      "source_id": "src-shinhan-digest"
+    },
+    {
+      "evidence_id": "global-us10y-prev",
+      "symbol": "US10Y",
+      "name": "US Treasury 10Y 전일",
+      "value": 4.616,
+      "change_bp": 1.2,
+      "unit": "percent",
+      "as_of": "2026-07-13T16:00:00-04:00",
+      "source_id": "src-shinhan-digest"
+    }
+  ],
+  "movers": [
+    {
+      "evidence_id": "mover-005930",
+      "ticker": "005930",
+      "name": "삼성전자",
+      "market": "KOSPI",
+      "last": 264500,
+      "change_pct": 3.93,
+      "source_id": "src-naver-kospi"
+    },
+    {
+      "evidence_id": "mover-000660",
+      "ticker": "000660",
+      "name": "SK하이닉스",
+      "market": "KOSPI",
+      "last": 1911000,
+      "change_pct": 3.58,
+      "source_id": "src-naver-kospi"
+    },
+    {
+      "evidence_id": "mover-005935",
+      "ticker": "005935",
+      "name": "삼성전자우",
+      "market": "KOSPI",
+      "last": 184800,
+      "change_pct": 4.47,
+      "source_id": "src-naver-kospi"
+    },
+    {
+      "evidence_id": "mover-005380",
+      "ticker": "005380",
+      "name": "현대차",
+      "market": "KOSPI",
+      "last": 424500,
+      "change_pct": -4.39,
+      "source_id": "src-naver-kospi"
+    },
+    {
+      "evidence_id": "mover-207940",
+      "ticker": "207940",
+      "name": "삼성바이오로직스",
+      "market": "KOSPI",
+      "last": 1367000,
+      "change_pct": -2.36,
+      "source_id": "src-naver-kospi"
+    },
+    {
+      "evidence_id": "mover-196170",
+      "ticker": "196170",
+      "name": "알테오젠",
+      "market": "KOSDAQ",
+      "last": 275500,
+      "change_pct": -12.95,
+      "source_id": "src-naver-kosdaq"
+    },
+    {
+      "evidence_id": "mover-247540",
+      "ticker": "247540",
+      "name": "에코프로비엠",
+      "market": "KOSDAQ",
+      "last": 114200,
+      "change_pct": -4.67,
+      "source_id": "src-naver-kosdaq"
+    },
+    {
+      "evidence_id": "mover-086520",
+      "ticker": "086520",
+      "name": "에코프로",
+      "market": "KOSDAQ",
+      "last": 79500,
+      "change_pct": -4.9,
+      "source_id": "src-naver-kosdaq"
+    },
+    {
+      "evidence_id": "mover-319660",
+      "ticker": "319660",
+      "name": "피에스케이",
+      "market": "KOSDAQ",
+      "last": 196400,
+      "change_pct": 6.39,
+      "source_id": "src-naver-kosdaq"
+    },
+    {
+      "evidence_id": "mover-036930",
+      "ticker": "036930",
+      "name": "주성엔지니어링",
+      "market": "KOSDAQ",
+      "last": 188400,
+      "change_pct": 3.23,
+      "source_id": "src-naver-kosdaq"
+    }
+  ],
+  "observations": [
+    {
+      "observation_id": "obs-01",
+      "text": "코스피는 장중 저점보다 7.26% 높고 당일 고저 범위의 88% 지점까지 회복했다.",
+      "evidence_ids": [
+        "mkt-kospi-1430"
+      ],
+      "observation_type": "derived_metric"
+    },
+    {
+      "observation_id": "obs-02",
+      "text": "코스피 방향성 종목 중 상승 종목 비율은 30.91%에 그쳐 지수 상승과 시장 폭이 괴리됐다.",
+      "evidence_ids": [
+        "mkt-kospi-1430",
+        "breadth-kospi-1430"
+      ],
+      "observation_type": "derived_metric"
+    },
+    {
+      "observation_id": "obs-03",
+      "text": "코스닥은 52주 저점을 새로 기록한 뒤 저점 대비 4.40% 회복했지만 전일 대비 2.08% 하락 상태다.",
+      "evidence_ids": [
+        "mkt-kosdaq-1430"
+      ],
+      "observation_type": "derived_metric"
+    },
+    {
+      "observation_id": "obs-04",
+      "text": "코스피에서는 기관·외국인·프로그램 순매수가 지수를 지지했지만 코스닥에서는 외국인·프로그램이 순매도였다.",
+      "evidence_ids": [
+        "flow-kospi-foreign",
+        "flow-kospi-institution",
+        "flow-kospi-program",
+        "flow-kosdaq-foreign",
+        "flow-kosdaq-program"
+      ],
+      "observation_type": "observed_fact"
+    },
+    {
+      "observation_id": "obs-05",
+      "text": "USD/KRW 수치는 은행 고시환율 프록시이므로 서울 현물환으로 해석하면 안 된다.",
+      "evidence_ids": [
+        "fx-usdkrw-1444"
+      ],
+      "observation_type": "data_warning"
+    }
+  ],
+  "sources": [
+    {
+      "source_id": "src-naver-kospi",
+      "name": "Naver Finance KOSPI snapshot",
+      "url": "https://m.stock.naver.com/domestic/index/KOSPI/total",
+      "retrieved_at": "2026-07-14T14:48:00+09:00",
+      "rights_class": "public_web_restricted",
+      "note": "prototype only; page warns of delay/error possibility and unauthorized redistribution"
+    },
+    {
+      "source_id": "src-naver-kosdaq",
+      "name": "Naver Finance KOSDAQ snapshot",
+      "url": "https://m.stock.naver.com/domestic/index/KOSDAQ/total",
+      "retrieved_at": "2026-07-14T14:48:00+09:00",
+      "rights_class": "public_web_restricted",
+      "note": "prototype only"
+    },
+    {
+      "source_id": "src-naver-usdkrw",
+      "name": "Naver Finance USD/KRW Hana Bank quoted rate",
+      "url": "https://m.stock.naver.com/marketindex/exchange/FX_USDKRW",
+      "retrieved_at": "2026-07-14T14:48:00+09:00",
+      "rights_class": "public_web_restricted",
+      "note": "bank quoted rate proxy"
+    },
+    {
+      "source_id": "src-shinhan-digest",
+      "name": "Shinhan Daily Market Digest 2026-07-14",
+      "url": "urn:uploaded-file:shinhan-daily-market-digest-2026-07-14",
+      "retrieved_at": "2026-07-14T14:40:00+09:00",
+      "rights_class": "internal_derived",
+      "note": "user-provided reference; used only for paraphrased prior-session context"
+    }
+  ]
+}

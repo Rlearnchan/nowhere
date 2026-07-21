@@ -1,0 +1,17 @@
+{
+  "itemCode": "005930",
+  "reutersCode": "005930",
+  "stockName": "삼성전자",
+  "closePrice": "260,000",
+  "closePriceRaw": "260000",
+  "compareToPreviousClosePrice": "16,000",
+  "compareToPreviousClosePriceRaw": "16000",
+  "fluctuationsRatio": "6.56",
+  "marketStatus": "OPEN",
+  "localTradedAt": "2026-07-21T12:22:21+09:00",
+  "accumulatedTradingVolumeRaw": "11596441",
+  "accumulatedTradingValueRaw": "2938052000000",
+  "marketValueRaw": "1520032438080000",
+  "stockExchangeType": {"name": "KOSPI", "nameKor": "코스피", "nameEng": "KOSPI"},
+  "stockExchangeName": "KOSPI"
+}

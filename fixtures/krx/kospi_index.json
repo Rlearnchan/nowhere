@@ -1,0 +1,15 @@
+{
+  "OutBlock_1": [
+    {
+      "BAS_DD": "20260714",
+      "IDX_CLSS": "KOSPI",
+      "IDX_NM": "KOSPI",
+      "CLSPRC_IDX": "2910.12",
+      "CMPPREVDD_IDX": "35.31",
+      "FLUC_RT": "1.23",
+      "OPNPRC_IDX": "2880.00",
+      "HGPRC_IDX": "2925.00",
+      "LWPRC_IDX": "2860.00"
+    }
+  ]
+}

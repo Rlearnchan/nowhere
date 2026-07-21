@@ -4,6 +4,7 @@
 __pycache__/
 *.pyc
 .pytest_cache/
+*.egg-info/
 
 # large/raw reference material
 references/raw/**
@@ -17,7 +18,9 @@ references/archive/**
 *.zip
 *.sqlite
 *.db
+runs/**
 
 # keep directory placeholders
 !references/raw/.gitkeep
 !references/archive/.gitkeep
+!runs/.gitkeep

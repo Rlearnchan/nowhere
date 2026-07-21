@@ -1,0 +1,12 @@
+{
+  "name": "nowhere-noon-starter",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Codex starter pack and fixed-layout demo for NOWHERE NOON BRIEF",
+  "scripts": {
+    "build:demo": "node demo/2026-07-14_1430/build_demo.js"
+  },
+  "dependencies": {
+    "pptxgenjs": "^4.0.0"
+  }
+}
